@@ -16,7 +16,7 @@ const app = express();
 // --- ¡ESTA ES LA CORRECCIÓN DE CORS! ---
 // Le decimos explícitamente que acepte peticiones de tu sitio Netlify
 const corsOptions = {
-  origin: 'https://softwarejtl.netlify.app',
+  origin: 'https://softwarejtl.netlify.app', // Tu dominio de Netlify
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   allowedHeaders: 'Content-Type,Authorization'
 };
