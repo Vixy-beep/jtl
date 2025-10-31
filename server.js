@@ -33,6 +33,11 @@ app.get('/api/products/:storeId', (req, res) => {
     res.json([]);
   }
 });
+// 8. Iniciar el servidor (Usando el puerto que asigne el entorno)
+const port_render = process.env.PORT || 3000; 
 
-// 6. Iniciar el servidor
-module.exports = app;
+app.listen(port_render, () => {
+    // En Render, esto saldrá como el puerto de producción
+    console.log(`Servidor de Express escuchando en el puerto ${port_render}`); 
+});
+// --- FIN DEL BLOQUE ---
