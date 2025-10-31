@@ -4,7 +4,7 @@ const cors = require('cors');
 
 // 2. Inicializar la aplicación
 const app = express();
-const port = 3000; // El puerto donde correrá el servidor
+const port = process.env.PORT || 3000;
 
 // 3. Configurar CORS (Permite que tu index.html hable con este servidor)
 app.use(cors());
