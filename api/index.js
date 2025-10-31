@@ -25,6 +25,7 @@ const MONGO_URL = process.env.MONGO_URL || "mongodb+srv://jtl_admin1:jw4OxrvWN0X
 const JWT_SECRET = process.env.JWT_SECRET || 'tu-llave-secreta-super-dificil-de-adivinar-12345';
 
 // 3. Bloque de Conexión Serverless (MÉTODO CORRECTO)
+/ 2. Bloque de Conexión Serverless/Render Robusto
 if (isConnected && mongoose.connections[0].readyState) {
     // Si la conexión ya existe y está activa, usa la existente
     console.log('Usando conexión existente a MongoDB.');
@@ -37,7 +38,7 @@ if (isConnected && mongoose.connections[0].readyState) {
     .then(() => {
         // Marca la variable global como true al lograr la conexión
         isConnected = true; 
-        console.log('¡Conectado a MongoDB Atlas! (Vercel)');
+        console.log('¡Conectado a MongoDB Atlas! (Vercel/Render)');
     })
     .catch((err) => {
         console.error('Error al conectar a MongoDB:', err);
