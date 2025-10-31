@@ -14,25 +14,35 @@ const app = express();
 app.use(cors()); 
 app.use(express.json()); 
 
-// 3. Conectar a la Base de Datos (Vercel usará estas variables)
-const MONGO_URL = process.env.MONGO_URL || "mongodb+srv://jtl_admin1:jw4OxrvWN0X9nbzH@jtl-tienda-cluster.zc83gfl.mongodb.net/tiendaDB?appName=jtl-tienda-cluster";
+// --- DENTRO DE api/index.js ---
+
+// 1. Define la variable isConnected (fuera de la función principal)
+let isConnected = false; 
+
+// 2. Conexión y Configuración de Variables de Entorno
+const MONGO_URL = process.env.MONGO_URL || "mongodb+srv://...[TU URL COMPLETA]...";
 const JWT_SECRET = process.env.JWT_SECRET || 'tu-llave-secreta-super-dificil-de-adivinar-12345';
 
-if (isConnected) {
+// 3. Bloque de Conexión Serverless Robusto
+if (isConnected && mongoose.connections[0].readyState) {
+    // Si la conexión ya existe y está activa, usa la existente
     console.log('Usando conexión existente a MongoDB.');
 } else {
+    // Intenta crear una nueva conexión
     mongoose.connect(MONGO_URL, { 
         serverSelectionTimeoutMS: 5000, 
         family: 4 
     })
     .then(() => {
-        isConnected = true; // Marca la conexión como exitosa
+        isConnected = true; 
         console.log('¡Conectado a MongoDB Atlas! (Vercel)');
     })
     .catch((err) => {
         console.error('Error al conectar a MongoDB:', err);
     });
 }
+// --- EL RESTO DEL CÓDIGO DEBE CONTINUAR NORMALMENTE AQUÍ ---
+// ... (Modelos, Middlewares, Rutas, y al final: module.exports = app;)
 // 4. Modelos de la Base de Datos (Mongoose)
 // (Asegúrate de que esta estructura coincida con tu base de datos)
 const storeSchema = new mongoose.Schema({
