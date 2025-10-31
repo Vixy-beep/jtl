@@ -15,7 +15,7 @@ app.use(cors());
 app.use(express.json()); 
 
 // 3. Conectar a la Base de Datos (Vercel usará estas variables)
-const MONGO_URL = process.env.MONGO_URL || "mongodb+srv://<REEMPLAZAR_USUARIO>:<REEMPLAZAR_CONTRASEÑA>@jtl-tienda-cluster.zc83gfl.mongodb.net/tiendaDB?appName=jtl-tienda-cluster";
+const MONGO_URL = process.env.MONGO_URL || "mongodb+srv://jtl_admin1:jw4OxrvWN0X9nbzH@jtl-tienda-cluster.zc83gfl.mongodb.net/tiendaDB?appName=jtl-tienda-cluster";
 const JWT_SECRET = process.env.JWT_SECRET || 'tu-llave-secreta-super-dificil-de-adivinar-12345';
 
 mongoose.connect(MONGO_URL)
