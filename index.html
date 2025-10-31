@@ -9,7 +9,6 @@
 
 </head>
 <body>
-
 <div class="container">
   <header>
     <div class="logo">JTL</div>
@@ -23,17 +22,7 @@
       <a class="btn" id="wa-link" target="_blank">WhatsApp</a>
     </nav>
   </header>
-
-  <div class="topbar">
-    <select id="filter-category" style="padding:10px 14px;border-radius:999px;border:1px solid #e6edf3;background:white;">
-      <option value="">Todas</option>
-    </select>
-    <div class="search" style="flex:1;">
-      <input id="search" placeholder="Buscar productos...">
-    </div>
-  </div>
-
-  <main class="layout" style="display:flex;gap:20px;align-items:start">
+<main class="layout" style="display:flex;gap:20px;align-items:start">
     <section style="flex:1"><div class="products" id="products"></div></section>
     <aside class="sidebar" style="width:320px">
       <div class="cart">
@@ -138,7 +127,7 @@
     <div style="display:flex;gap:8px;">
       <button class="btn secondary" style="flex:1" id="close-admin">Cerrar</button>
       <button id="delete-all" style="flex:1;padding:10px;border:none;background:#ef4444;color:white;font-weight:700;border-radius:8px;cursor:pointer;display:none;">
-        🗑️ Borrar Datos (esta tienda)
+        🗑️ Borrar Mis Datos
       </button>
     </div>
 
@@ -174,7 +163,7 @@
     <div style="margin-top:10px;">
       <div id="monthly-control" style="display:none;margin-top:6px;">
         <label style="font-weight:700;margin-bottom:6px;display:block;">Monto mensual (RD$)</label>
-        <input id="monthly-input" placeholder="RD$500">
+        <input id="monthly-input" placeholder="RD$500" type="number">
         <button class="btn" id="save-monthly-btn" style="margin-top:6px;">Guardar monto mensual</button>
       </div>
 
@@ -191,8 +180,7 @@
 
 // --- Variables Globales ---
 const THEME_KEY = 'jt_theme_v2';
-// ESTA ES LA LÍNEA CRUCIAL
-const API_URL = 'https://jtl-tienda-api-v2.onrender.com'; 
+const API_URL = 'https://jtl-tienda-api-v2.onrender.com'; // URL de Render
 
 // Estado de la aplicación
 let ALL_STORES = []; 
@@ -280,6 +268,7 @@ const themeToggle = document.getElementById('theme-toggle');
 const subscriptionCardContainer = document.getElementById('subscription-card-container');
 const resetProfitBtn = document.getElementById('reset-profit');
 const jtlAdminSection = document.getElementById('jtl-admin-section');
+const deleteAllDataBtn = document.getElementById('delete-all');
 
 /* ---------- Header / WA / Theme ---------- */
 function renderHeader(){
@@ -304,9 +293,7 @@ themeToggle.onclick = () => {
 
 /* ---------- Productos / UI (Pública) ---------- */
 
-// Carga productos de la tienda activa
 async function loadProductsFor(storeId) {
-  console.log(`Buscando productos para ${storeId} en el backend...`);
   try {
     const response = await fetch(`${API_URL}/api/products/${storeId}`);
     if (!response.ok) {
@@ -314,7 +301,6 @@ async function loadProductsFor(storeId) {
       return [];
     }
     const data = await response.json();
-    console.log('Productos recibidos:', data);
     return data;
   } catch (error) {
     console.error('No se pudo conectar al servidor:', error);
@@ -322,11 +308,13 @@ async function loadProductsFor(storeId) {
   }
 }
 
-// Renderiza estadísticas (llamado desde el admin)
 async function renderStats(storeId) {
   try {
     const response = await fetch(`${API_URL}/api/stats/${storeId}`, { headers: getAuthHeaders() });
-    if (!response.ok) throw new Error('No se pudieron cargar las estadísticas');
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'No se pudieron cargar las estadísticas');
+    }
     const stats = await response.json();
     
     const c = products.length;
@@ -344,6 +332,9 @@ async function renderStats(storeId) {
     statSub.textContent = days > 0 ? `Activa — vence en ${days} días` : 'Vencida — bloqueada';
   } catch (error) {
     console.error('Error renderStats:', error.message);
+    if (error.message.includes('Suscripción vencida')) {
+        showBlockModal(LOGGED_IN_STORE.name);
+    }
     statProfit.textContent = 'Error';
     statPlatform.textContent = 'Error';
   }
@@ -448,10 +439,15 @@ document.getElementById('buy-whatsapp-mobile').onclick = () => { buyWhatsAppHand
 
 async function buyWhatsAppHandler(){
   if(cart.length === 0) return alert('Carrito vacío');
-  // TODO: Verificar suscripción desde el objeto ACTIVE_STORE!
+  
+  // Revisión de suscripción
+  const days = daysUntil(ACTIVE_STORE.subscriptionPaidUntil);
+  if(days <= 0 && ACTIVE_STORE.name !== 'jtl') {
+    showBlockModal(ACTIVE_STORE.name);
+    return;
+  }
   
   try {
-    // 1. Informar al backend de la venta para que actualice el stock
     const response = await fetch(`${API_URL}/api/sales/whatsapp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -463,7 +459,6 @@ async function buyWhatsAppHandler(){
       throw new Error(data.message || 'Error al procesar la venta');
     }
 
-    // 2. Si el backend da OK, construimos el mensaje de WhatsApp
     let total = 0;
     let msg = "🛍 *Pedido*%0A%0A";
     cart.forEach(it => {
@@ -477,12 +472,10 @@ async function buyWhatsAppHandler(){
     const wa = `https://wa.me/${ACTIVE_STORE?.whatsapp || '18093108421'}?text=` + msg;
     window.open(wa, '_blank');
 
-    // 3. Limpiamos y recargamos
     cart = [];
-    products = await loadProductsFor(ACTIVE_STORE._id); // Recargar productos con nuevo stock
+    products = await loadProductsFor(ACTIVE_STORE._id);
     renderProducts();
     renderCart();
-
   } catch (error) {
     console.error('Error en buyWhatsAppHandler:', error);
     alert('Error al procesar el pedido: ' + error.message);
@@ -491,20 +484,17 @@ async function buyWhatsAppHandler(){
 
 /* ---------- LOGIN ADMIN: ahora por tienda (con bloqueo) ---------- */
 adminBtn.onclick = () => {
-  // populateLoginStores ya se llamó en initPublicUI
   passError.style.display = 'none';
   loginPassInput.value = '';
   passModal.style.display = 'flex';
 };
 
 function populateLoginStores(){
-  // Esta función ahora usa la variable global ALL_STORES
-  // Y usa el _id de MongoDB como el 'value'
   loginStoreSelect.innerHTML = ALL_STORES.map(s => `<option value="${s._id}">${s.name} ${s.isPublic ? '( pública )' : '( privada )'}</option>`).join('');
 }
 
 passEnterBtn.onclick = async () => {
-  const storeId = loginStoreSelect.value; // Esto ahora es el _id de MongoDB
+  const storeId = loginStoreSelect.value;
   const password = loginPassInput.value || '';
   passError.style.display = 'none';
 
@@ -519,13 +509,13 @@ passEnterBtn.onclick = async () => {
     if (!response.ok) throw new Error(data.message || 'Contraseña incorrecta');
 
     saveToken(data.token);
-    LOGGED_IN_STORE = data.store; // Guardamos el objeto de la tienda logueada
+    LOGGED_IN_STORE = data.store;
     
     passModal.style.display = 'none';
     loginPassInput.value = '';
     adminPanel.style.display = 'flex';
     
-    await initAdminUI(LOGGED_IN_STORE); // Pasamos el objeto completo
+    await initAdminUI(LOGGED_IN_STORE);
     
   } catch (error) {
     console.error('Error de login:', error);
@@ -536,39 +526,40 @@ passEnterBtn.onclick = async () => {
 
 passCancelBtn.onclick = () => { passModal.style.display = 'none'; passError.style.display = 'none'; };
 
+function showBlockModal(storeName){
+    blockMsg.textContent = `La tienda "${storeName}" está bloqueada porque la suscripción venció.`;
+    blockWaBtn.href = `https://wa.me/18093108421?text=${encodeURIComponent('Hola, necesito renovar la suscripción de la tienda "'+storeName+'"')}`;
+    blockModal.style.display = 'flex';
+    blockCancelBtn.onclick = () => blockModal.style.display = 'none';
+}
+
 /* ---------- Admin panel (inicializar con tienda específica) ---------- */
 async function initAdminUI(store){
-  // store es el objeto de la tienda logueada
   adminStoreSelector.innerHTML = ALL_STORES.map(s => `<option value="${s._id}">${s.name}</option>`).join('');
   adminStoreSelector.value = store._id;
 
-  // Si no es JTL, deshabilitamos el selector de tiendas
   if (store.name !== 'jtl') {
     adminStoreSelector.disabled = true;
   } else {
     adminStoreSelector.disabled = false;
   }
 
-  // Cargar datos para la tienda seleccionada
   await loadAdminDataForStore(store._id);
 
-  // Manejador para cuando JTL cambia de tienda en el admin
   adminStoreSelector.onchange = async () => {
     const selectedStoreId = adminStoreSelector.value;
     await loadAdminDataForStore(selectedStoreId);
   };
 }
 
-// Función helper para cargar todos los datos del panel de admin
 async function loadAdminDataForStore(storeId) {
   try {
     products = await loadProductsFor(storeId);
     await renderStats(storeId);
     await loadAdminList();
     await loadCashSelect();
-    renderStoreList(); // La lista de tiendas (para JTL)
+    renderStoreList(); 
     renderAdminControlsVisibility();
-    // renderSubscriptionCardFor(storeId); // TODO: Implementar si se desea
   } catch (error) {
     console.error('Error al cargar datos de admin:', error);
     alert('Error al cargar datos del admin: ' + error.message);
@@ -604,7 +595,7 @@ function renderStoreList(){
     storeListDiv.appendChild(row);
   });
 
-  // Manejadores para botones de JTL
+  // Manejadores (Arregla el bug DOCTYPE)
   storeListDiv.querySelectorAll('[data-make]').forEach(b => {
     b.onclick = async () => {
       const id = b.getAttribute('data-make');
@@ -619,7 +610,6 @@ function renderStoreList(){
         const data = await response.json();
         if (!response.ok) throw new Error(data.message);
         alert('Estado de la tienda actualizado.');
-        // Recargar la lista de tiendas
         ALL_STORES = await (await fetch(`${API_URL}/api/stores`)).json();
         renderStoreList();
       } catch (error) { alert('Error: ' + error.message); }
@@ -638,7 +628,6 @@ function renderStoreList(){
         const data = await response.json();
         if (!response.ok) throw new Error(data.message);
         alert('Pago registrado. La suscripción ha sido extendida.');
-        // Recargar tiendas y actualizar stats
         ALL_STORES = await (await fetch(`${API_URL}/api/stores`)).json();
         renderStoreList();
         await renderStats(adminStoreSelector.value);
@@ -658,7 +647,6 @@ function renderStoreList(){
         const data = await response.json();
         if (!response.ok) throw new Error(data.message);
         alert('Tienda eliminada.');
-        // Recargar la lista de tiendas
         ALL_STORES = await (await fetch(`${API_URL}/api/stores`)).json();
         populateLoginStores();
         renderStoreList();
@@ -670,7 +658,7 @@ function renderStoreList(){
 /* ---------- Admin: lista productos y acciones ---------- */
 async function loadAdminList(){
   adminListTbody.innerHTML = '';
-  const list = products; // 'products' es ahora la lista de la tienda seleccionada
+  const list = products;
   list.forEach(p => {
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${p.name}</td><td>${formatRD(p.price)}</td><td>${p.stock}</td><td>${p.category||'General'}</td>
@@ -692,7 +680,7 @@ async function loadAdminList(){
         const data = await response.json();
         if (!response.ok) throw new Error(data.message);
         alert('¡Producto eliminado!');
-        await loadAdminDataForStore(adminStoreSelector.value); // Recargar todo
+        await loadAdminDataForStore(adminStoreSelector.value);
       } catch (error) {
         console.error('Error al eliminar:', error);
         alert('Error al eliminar: ' + error.message);
@@ -701,13 +689,11 @@ async function loadAdminList(){
   });
 }
 
-// Botón "Guardar Producto"
 document.getElementById('add-product').onclick = async () => {
   const name = pName.value.trim();
   const category = pCategory.value.trim() || 'General';
   const price = Number(pPrice.value) || 0;
   const stock = Number(pStock.value) || 0;
-  // const img = ... (manejo de imágenes es más complejo, omitido)
 
   try {
     const response = await fetch(`${API_URL}/api/products`, {
@@ -720,8 +706,7 @@ document.getElementById('add-product').onclick = async () => {
     
     alert('¡Producto guardado en la base de datos!');
     pName.value = pCategory.value = pPrice.value = pStock.value = '';
-    await loadAdminDataForStore(adminStoreSelector.value); // Recargar todo
-  
+    await loadAdminDataForStore(adminStoreSelector.value);
   } catch (error) {
     console.error('Error al guardar:', error);
     alert('Error al guardar: ' + error.message);
@@ -731,7 +716,7 @@ document.getElementById('add-product').onclick = async () => {
 /* ---------- Venta en efectivo (con comisión) ---------- */
 async function loadCashSelect(){
   const list = products;
-  cashSelect.innerHTML = '<option value="">Seleccionar producto...</option>' + list.map(p => `<option value="${p._id}">${p.name} — ${formatRD(p.price)}</Loption>`).join('');
+  cashSelect.innerHTML = '<option value="">Seleccionar producto...</option>' + list.map(p => `<option value="${p._id}">${p.name} — ${formatRD(p.price)}</option>`).join('');
 }
 
 document.getElementById('cash-sale-btn').onclick = async () => { 
@@ -754,7 +739,6 @@ document.getElementById('cash-sale-btn').onclick = async () => {
     cashQty.value = '';
     cashPaid.value = '';
     
-    // Recargar datos para ver nuevo stock y ganancias
     await loadAdminDataForStore(adminStoreSelector.value);
 
   } catch (error) {
@@ -793,7 +777,6 @@ createStoreBtn.onclick = async () => {
     newStoreBox.style.display = 'none';
     newStoreName.value = newStoreWa.value = newStorePass.value = '';
     
-    // Recargar lista de tiendas
     ALL_STORES = await (await fetch(`${API_URL}/api/stores`)).json();
     populateLoginStores();
     renderStoreList();
@@ -822,19 +805,16 @@ togglePublicBtn.onclick = () => {
   const selectedStoreId = adminStoreSelector.value;
   const store = ALL_STORES.find(s => s._id === selectedStoreId);
   if (!store) return;
-  
   const btn = storeListDiv.querySelector(`[data-make="${selectedStoreId}"]`);
-  if (btn) btn.click(); // Simulamos el clic en el botón de la lista
+  if (btn) btn.click();
 };
 
-/* Reset profit */
 resetProfitBtn.onclick = async () => {
   if (!confirm('¿Seguro que desea resetear las ganancias y comisiones de esta tienda?')) return;
   try {
     const response = await fetch(`${API_URL}/api/stores/resetprofit`, {
       method: 'POST',
       headers: getAuthHeaders()
-      // El backend sabe qué tienda es por el token
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.message);
@@ -844,29 +824,78 @@ resetProfitBtn.onclick = async () => {
   } catch (error) { alert('Error: ' + error.message); }
 };
 
+// --- NUEVO: Conectar botón de borrar mis datos (FEATURE 3) ---
+deleteAllDataBtn.onclick = async () => {
+  if (LOGGED_IN_STORE.name === 'jtl') return alert('JTL no puede usar esta función.');
+  if (!confirm('¿Seguro que quieres borrar TODOS tus productos y datos de ganancias? Esta acción es irreversible.')) return;
+  try {
+    const response = await fetch(`${API_URL}/api/stores/my-data`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message);
+    
+    alert(data.message);
+    await loadAdminDataForStore(LOGGED_IN_STORE._id); // Recargar
+  } catch (error) { alert('Error: ' + error.message); }
+};
+
+// --- NUEVO: Conectar controles de monto mensual (FEATURE 2) ---
+saveMonthlyBtn.onclick = async () => {
+    const value = Number(monthlyInput.value);
+    if (!value || value <= 0) return alert('Monto inválido');
+    try {
+        const response = await fetch(`${API_URL}/api/settings/monthly_amount`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ value: value })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message);
+        alert('Monto mensual actualizado: RD$' + data.value.toFixed(2));
+    } catch (error) { alert('Error: ' + error.message); }
+};
+
+async function loadMonthlyAmount() {
+    try {
+        const response = await fetch(`${API_URL}/api/settings/monthly_amount`, { headers: getAuthHeaders() });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message);
+        monthlyInput.value = data.value;
+    } catch (error) { console.error('Error cargando monto mensual', error); }
+}
+
 /* mostrar/ocultar controles JTL segun sesión */
 function renderAdminControlsVisibility(){
   if (LOGGED_IN_STORE.name !== 'jtl') {
     jtlAdminSection.style.display = 'none';
     togglePublicBtn.style.display = 'none';
-    btnNewStore.style.display = 'none'; // Ocultar
+    btnNewStore.style.display = 'none';
+    monthlyControlDiv.style.display = 'none';
+    // Mostrar botón de borrar datos para tiendas normales
+    deleteAllDataBtn.style.display = 'inline-flex';
   } else {
     jtlAdminSection.style.display = 'block';
     togglePublicBtn.style.display = 'inline-flex';
-    btnNewStore.style.display = 'inline-flex'; // ¡Mostrar!
+    btnNewStore.style.display = 'inline-flex';
+    monthlyControlDiv.style.display = 'block';
+    // Ocultar botón de borrar datos para JTL
+    deleteAllDataBtn.style.display = 'none';
+    loadMonthlyAmount(); // Cargar el monto mensual solo para JTL
   }
 }
 
 /* ---------- Inicialización pública (vista cliente) ---------- */
 async function initPublicUI(){
   try {
-    // 1. Cargar todas las tiendas
     const response = await fetch(`${API_URL}/api/stores`);
-    if (!response.ok) throw new Error('No se pudieron cargar las tiendas');
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'No se pudieron cargar las tiendas');
+    }
     ALL_STORES = await response.json();
     
-    // 2. Definir tienda activa (pública)
-    // TODO: Usar el `localStorage` para recordar la última tienda vista
     ACTIVE_STORE = ALL_STORES.find(s => s.name === 'jtl') || ALL_STORES.find(s => s.isPublic);
     
     if (!ACTIVE_STORE) {
@@ -874,15 +903,13 @@ async function initPublicUI(){
       return;
     }
     
-    // 3. Cargar productos de la tienda activa
     products = await loadProductsFor(ACTIVE_STORE._id);
     
-    // 4. Renderizar todo
     renderHeader();
     renderProducts();
     renderCart();
     loadCategoryFilter();
-    populateLoginStores(); // Llenar el dropdown del modal
+    populateLoginStores();
 
   } catch (error) {
     console.error('Error fatal en initPublicUI:', error);
@@ -895,13 +922,12 @@ document.getElementById('close-admin').onclick = async () => {
   adminPanel.style.display = 'none';
   LOGGED_IN_STORE = null;
   removeToken();
-  // Recargamos la UI pública
   await initPublicUI();
 };
 
 /* ---------- Inicialización final ---------- */
 applyThemeFromStorage();
-initPublicUI(); // Iniciar la aplicación
+initPublicUI();
 
 </script>
 
