@@ -6,8 +6,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 // 1. Constantes de Negocio
-const COMMISSION_PERCENT = 5; // 5% global
-const SUBSCRIPTION_MS = 30 * 24 * 60 * 60 * 1000; // 30 días
+const COMMISSION_PERCENT = 5;
+const SUBSCRIPTION_MS = 30 * 24 * 60 * 60 * 1000;
 const DEFAULT_MONTHLY_AMOUNT = 500;
 
 // 2. Inicializar y Configurar Express
@@ -106,7 +106,7 @@ const authenticateAdmin = (req, res, next) => {
 
 app.get('/api/stores', async (req, res) => {
   try {
-    const stores = await Store.find({}, 'name isPublic whatsapp subscriptionPaidUntil _id'); // Asegúrate de incluir _id
+    const stores = await Store.find({}, 'name isPublic whatsapp subscriptionPaidUntil _id');
     res.json(stores);
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener tiendas' });
