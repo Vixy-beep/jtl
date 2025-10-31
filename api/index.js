@@ -16,14 +16,15 @@ app.use(express.json());
 
 // --- DENTRO DE api/index.js ---
 
-// 1. Define la variable isConnected (fuera de la función principal)
+// 2. Conexión y Configuración de Variables de Entorno
+// 1. DEFINE isConnected UNA SOLA VEZ FUERA DE CUALQUIER BLOQUE
 let isConnected = false; 
 
-// 2. Conexión y Configuración de Variables de Entorno
-const MONGO_URL = process.env.MONGO_URL || "mongodb+srv://...[TU URL COMPLETA]...";
+// 2. Conexión y Variables
+const MONGO_URL = process.env.MONGO_URL || "mongodb+srv://jtl_admin1:jw4OxrvWN0X9nbzH@jtl-tienda-cluster.zc83gfl.mongodb.net/tiendaDB?appName=jtl-tienda-cluster";;
 const JWT_SECRET = process.env.JWT_SECRET || 'tu-llave-secreta-super-dificil-de-adivinar-12345';
 
-// 3. Bloque de Conexión Serverless Robusto
+// 3. Bloque de Conexión Serverless (MÉTODO CORRECTO)
 if (isConnected && mongoose.connections[0].readyState) {
     // Si la conexión ya existe y está activa, usa la existente
     console.log('Usando conexión existente a MongoDB.');
@@ -34,6 +35,7 @@ if (isConnected && mongoose.connections[0].readyState) {
         family: 4 
     })
     .then(() => {
+        // Marca la variable global como true al lograr la conexión
         isConnected = true; 
         console.log('¡Conectado a MongoDB Atlas! (Vercel)');
     })
