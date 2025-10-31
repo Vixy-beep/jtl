@@ -13,10 +13,10 @@ const DEFAULT_MONTHLY_AMOUNT = 500;
 // 2. Inicializar y Configurar Express
 const app = express();
 
-// --- ¡ESTA ES LA CORRECCIÓN DE CORS! ---
-// Le decimos explícitamente que acepte peticiones de tu sitio Netlify
+// --- ¡ESTA ES LA CORRECCIÓN "NUCLEAR" DE CORS! ---
+// Le decimos explícitamente que acepte peticiones de CUALQUIER LUGAR (*)
 const corsOptions = {
-  origin: 'https://softwarejtl.netlify.app', // Tu dominio de Netlify
+  origin: '*', // <--- ESTE ES EL CAMBIO IMPORTANTE
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   allowedHeaders: 'Content-Type,Authorization'
 };
