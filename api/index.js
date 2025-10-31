@@ -1,4 +1,4 @@
-// api/index.js - Backend para Vercel
+// api/index.js - Backend para Render (Configuración Final)
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -14,40 +14,23 @@ const app = express();
 app.use(cors()); 
 app.use(express.json()); 
 
-// --- DENTRO DE api/index.js ---
-
-// 2. Conexión y Configuración de Variables de Entorno
-// 1. DEFINE isConnected UNA SOLA VEZ FUERA DE CUALQUIER BLOQUE
-let isConnected = false; 
-
-// 2. Conexión y Variables
+// 3. Conexión a la Base de Datos y Variables
 const MONGO_URL = process.env.MONGO_URL || "mongodb+srv://jtl_admin1:jw4OxrvWN0X9nbzH@jtl-tienda-cluster.zc83gfl.mongodb.net/tiendaDB";
 const JWT_SECRET = process.env.JWT_SECRET || 'tu-llave-secreta-super-dificil-de-adivinar-12345';
 
-// 3. Bloque de Conexión Serverless (MÉTODO CORRECTO)
-// 2. Bloque de Conexión Serverless/Render Robusto
-if (isConnected && mongoose.connections[0].readyState) {
-    // Si la conexión ya existe y está activa, usa la existente
-    console.log('Usando conexión existente a MongoDB.');
-} else {
-    // Intenta crear una nueva conexión
-    mongoose.connect(MONGO_URL, { 
-        serverSelectionTimeoutMS: 5000, 
-        family: 4 
-    })
-    .then(() => {
-        // Marca la variable global como true al lograr la conexión
-        isConnected = true; 
-        console.log('¡Conectado a MongoDB Atlas! (Vercel/Render)');
-    })
-    .catch((err) => {
-        console.error('Error al conectar a MongoDB:', err);
-    });
-}
-// --- EL RESTO DEL CÓDIGO DEBE CONTINUAR NORMALMENTE AQUÍ ---
-// ... (Modelos, Middlewares, Rutas, y al final: module.exports = app;)
-// 4. Modelos de la Base de Datos (Mongoose)
-// (Asegúrate de que esta estructura coincida con tu base de datos)
+// 4. Conexión de Mongoose (Simple y Robusta para Hosting)
+mongoose.connect(MONGO_URL, { 
+    serverSelectionTimeoutMS: 5000, 
+    family: 4 
+})
+.then(() => {
+    console.log('¡Conectado a MongoDB Atlas!');
+})
+.catch((err) => {
+    console.error('Error al conectar a MongoDB:', err);
+});
+
+// 5. Modelos de la Base de Datos (Mongoose)
 const storeSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   whatsapp: { type: String },
@@ -71,7 +54,7 @@ const productSchema = new mongoose.Schema({
 const Product = mongoose.model('Product', productSchema);
 
 
-// 5. Seguridad: Middleware de Autenticación (JWT)
+// 6. Seguridad: Middleware de Autenticación (JWT)
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -92,9 +75,9 @@ const authenticateAdmin = (req, res, next) => {
 };
 
 
-// 6. RUTAS DE LA API (Endpoints)
+// 7. RUTAS DE LA API (Endpoints)
 
-// RUTA BASE (Para verificar que Vercel funciona)
+// RUTA BASE (Para verificar que Express está cargado)
 app.get('/', (req, res) => {
     res.send('API de Tienda JTL funcionando. Usa /api/stores o /api/products');
 });
@@ -106,6 +89,32 @@ app.get('/api/stores', async (req, res) => {
     res.json(stores);
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener tiendas' });
+  }
+});
+
+// RUTA POST: REGISTRAR TIENDA (PÚBLICA)
+app.post('/api/stores/register', async (req, res) => {
+  try {
+    const { name, password, whatsapp } = req.body;
+    const existingStore = await Store.findOne({ name: name });
+    if (existingStore) {
+      return res.status(400).json({ message: 'Ya existe una tienda con ese nombre' });
+    }
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    const newStore = new Store({
+      name: name,
+      password: hashedPassword,
+      whatsapp: whatsapp || '',
+      subscriptionPaidUntil: new Date(Date.now() + SUBSCRIPTION_MS) // +30 días gratis
+    });
+    await newStore.save();
+    console.log('¡Tienda registrada con éxito:', newStore.name);
+    res.status(201).json({ message: 'Tienda registrada con éxito', storeId: newStore._id });
+
+  } catch (error) {
+    console.error('Error al registrar tienda:', error);
+    res.status(500).json({ message: 'Error en el servidor' });
   }
 });
 
@@ -225,9 +234,5 @@ app.get('/api/stats/:storeId', authenticateToken, async (req, res) => {
 });
 
 
-// ... [Otras rutas de Admin JTL: /api/stores, /api/stores/pay, etc.] ...
-// (Para un despliegue rápido, estas no son esenciales ahora mismo, pero se añadirían aquí)
-
-
-// 7. Exportar para Vercel
+// 8. Exportar la aplicación Express para el hosting
 module.exports = app;
