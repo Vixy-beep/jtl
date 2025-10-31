@@ -9,6 +9,7 @@
 
 </head>
 <body>
+
 <div class="container">
   <header>
     <div class="logo">JTL</div>
@@ -22,7 +23,17 @@
       <a class="btn" id="wa-link" target="_blank">WhatsApp</a>
     </nav>
   </header>
-<main class="layout" style="display:flex;gap:20px;align-items:start">
+
+  <div class="topbar">
+    <select id="filter-category" style="padding:10px 14px;border-radius:999px;border:1px solid #e6edf3;background:white;">
+      <option value="">Todas</option>
+    </select>
+    <div class="search" style="flex:1;">
+      <input id="search" placeholder="Buscar productos...">
+    </div>
+  </div>
+
+  <main class="layout" style="display:flex;gap:20px;align-items:start">
     <section style="flex:1"><div class="products" id="products"></div></section>
     <aside class="sidebar" style="width:320px">
       <div class="cart">
@@ -180,8 +191,8 @@
 
 // --- Variables Globales ---
 const THEME_KEY = 'jt_theme_v2';
-// Vercel usará /api para comunicarse consigo mismo
-const API_URL = 'https://jtl-tienda-api-v2.onrender.com';
+// ESTA ES LA LÍNEA CRUCIAL
+const API_URL = 'https://jtl-tienda-api-v2.onrender.com'; 
 
 // Estado de la aplicación
 let ALL_STORES = []; 
