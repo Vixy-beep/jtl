@@ -213,7 +213,8 @@ function daysUntil(msStr){
 }
 
 /* ---------- DOM ---------- */
-// Ahora estas variables se definen DESPUÉS de que el DOM esté listo
+// --- ¡CORRECCIÓN! ---
+// Movemos todas las definiciones de variables del DOM DENTRO del listener
 const productsWrap = document.getElementById('products');
 const cartItems = document.getElementById('cart-items');
 const subtotalEl = document.getElementById('subtotal');
@@ -752,12 +753,15 @@ document.getElementById('cash-sale-btn').onclick = async () => {
 };
 
 /* ---------- Filtros y búsqueda ---------- */
+// ESTA ES LA LÍNEA 751
 filterCategory.onchange = () => renderProducts(searchInput.value);
 searchInput.oninput = () => renderProducts(searchInput.value);
 
 /* ---------- Panel y carrito móviles ---------- */
 floatingCartBtn.onclick = () => { mobileCartPanel.style.display = 'block'; };
-document.getElementById('mobile-cart-close').onclick = () => { mobileCartPanel.style.display = 'none'; };
+document.getElementById('mobile-cart-close').onclick = () => {
+  mobileCartPanel.style.display = 'none';
+};
 
 /* ---------- Controles de Admin (Crear Tienda, Cambiar Pass, etc.) ---------- */
 btnNewStore.onclick = () => { newStoreBox.style.display = newStoreBox.style.display === 'none' ? 'block' : 'none'; };
@@ -891,7 +895,7 @@ async function initPublicUI(){
   try {
     const response = await fetch(`${API_URL}/api/stores`);
     if (!response.ok) {
-        const errData = await response.text(); // Leer como texto por si no es JSON
+        const errData = await response.text(); 
         console.error("Error response text:", errData);
         throw new Error(`No se pudieron cargar las tiendas (${response.status})`);
     }
