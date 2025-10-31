@@ -184,8 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- Variables Globales ---
 const THEME_KEY = 'jt_theme_v2';
-// ¡LA LÍNEA CRUCIAL DE CONEXIÓN!
-const API_URL = 'https://jtl-tienda-api-v2.onrender.com'; 
+const API_URL = 'https://jtl-tienda-api-v2.onrender.com'; // URL de Render
 
 // Estado de la aplicación
 let ALL_STORES = []; 
@@ -214,7 +213,6 @@ function daysUntil(msStr){
 }
 
 /* ---------- DOM ---------- */
-// --- CORRECCIÓN --- TODAS LAS DEFINICIONES DE DOM DEBEN ESTAR DENTRO DE DOMContentLoaded
 const productsWrap = document.getElementById('products');
 const cartItems = document.getElementById('cart-items');
 const subtotalEl = document.getElementById('subtotal');
@@ -275,7 +273,6 @@ const subscriptionCardContainer = document.getElementById('subscription-card-con
 const resetProfitBtn = document.getElementById('reset-profit');
 const jtlAdminSection = document.getElementById('jtl-admin-section');
 const deleteAllDataBtn = document.getElementById('delete-all');
-
 
 /* ---------- Header / WA / Theme ---------- */
 function renderHeader(){
@@ -754,6 +751,8 @@ document.getElementById('cash-sale-btn').onclick = async () => {
 };
 
 /* ---------- Filtros y búsqueda ---------- */
+// --- ¡CORRECCIÓN FINAL! ---
+// Movemos estos listeners aquí, después de que las variables están definidas
 filterCategory.onchange = () => renderProducts(searchInput.value);
 searchInput.oninput = () => renderProducts(searchInput.value);
 
@@ -762,6 +761,7 @@ floatingCartBtn.onclick = () => { mobileCartPanel.style.display = 'block'; };
 document.getElementById('mobile-cart-close').onclick = () => {
   mobileCartPanel.style.display = 'none';
 };
+// --- FIN DE LA CORRECCIÓN ---
 
 /* ---------- Controles de Admin (Crear Tienda, Cambiar Pass, etc.) ---------- */
 btnNewStore.onclick = () => { newStoreBox.style.display = newStoreBox.style.display === 'none' ? 'block' : 'none'; };
