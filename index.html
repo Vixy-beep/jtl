@@ -176,6 +176,10 @@
 </div>
 
 <script>
+// --- ¡INICIO DE LA CORRECCIÓN! ---
+// Espera a que el HTML esté completamente cargado antes de ejecutar el script
+document.addEventListener('DOMContentLoaded', () => {
+
 /* ----------------- MULTI-TIENDA FULLSTACK (CLIENTE) ----------------- */
 
 // --- Variables Globales ---
@@ -209,6 +213,7 @@ function daysUntil(msStr){
 }
 
 /* ---------- DOM ---------- */
+// Ahora estas variables se definen DESPUÉS de que el DOM esté listo
 const productsWrap = document.getElementById('products');
 const cartItems = document.getElementById('cart-items');
 const subtotalEl = document.getElementById('subtotal');
@@ -440,7 +445,6 @@ document.getElementById('buy-whatsapp-mobile').onclick = () => { buyWhatsAppHand
 async function buyWhatsAppHandler(){
   if(cart.length === 0) return alert('Carrito vacío');
   
-  // Revisión de suscripción
   const days = daysUntil(ACTIVE_STORE.subscriptionPaidUntil);
   if(days <= 0 && ACTIVE_STORE.name !== 'jtl') {
     showBlockModal(ACTIVE_STORE.name);
@@ -824,7 +828,6 @@ resetProfitBtn.onclick = async () => {
   } catch (error) { alert('Error: ' + error.message); }
 };
 
-// --- NUEVO: Conectar botón de borrar mis datos (FEATURE 3) ---
 deleteAllDataBtn.onclick = async () => {
   if (LOGGED_IN_STORE.name === 'jtl') return alert('JTL no puede usar esta función.');
   if (!confirm('¿Seguro que quieres borrar TODOS tus productos y datos de ganancias? Esta acción es irreversible.')) return;
@@ -837,11 +840,10 @@ deleteAllDataBtn.onclick = async () => {
     if (!response.ok) throw new Error(data.message);
     
     alert(data.message);
-    await loadAdminDataForStore(LOGGED_IN_STORE._id); // Recargar
+    await loadAdminDataForStore(LOGGED_IN_STORE._id);
   } catch (error) { alert('Error: ' + error.message); }
 };
 
-// --- NUEVO: Conectar controles de monto mensual (FEATURE 2) ---
 saveMonthlyBtn.onclick = async () => {
     const value = Number(monthlyInput.value);
     if (!value || value <= 0) return alert('Monto inválido');
@@ -873,16 +875,14 @@ function renderAdminControlsVisibility(){
     togglePublicBtn.style.display = 'none';
     btnNewStore.style.display = 'none';
     monthlyControlDiv.style.display = 'none';
-    // Mostrar botón de borrar datos para tiendas normales
     deleteAllDataBtn.style.display = 'inline-flex';
   } else {
     jtlAdminSection.style.display = 'block';
     togglePublicBtn.style.display = 'inline-flex';
     btnNewStore.style.display = 'inline-flex';
     monthlyControlDiv.style.display = 'block';
-    // Ocultar botón de borrar datos para JTL
     deleteAllDataBtn.style.display = 'none';
-    loadMonthlyAmount(); // Cargar el monto mensual solo para JTL
+    loadMonthlyAmount();
   }
 }
 
@@ -891,8 +891,9 @@ async function initPublicUI(){
   try {
     const response = await fetch(`${API_URL}/api/stores`);
     if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.message || 'No se pudieron cargar las tiendas');
+        const errData = await response.text(); // Leer como texto por si no es JSON
+        console.error("Error response text:", errData);
+        throw new Error(`No se pudieron cargar las tiendas (${response.status})`);
     }
     ALL_STORES = await response.json();
     
@@ -929,6 +930,8 @@ document.getElementById('close-admin').onclick = async () => {
 applyThemeFromStorage();
 initPublicUI();
 
+// --- ¡FIN DE LA CORRECCIÓN! ---
+}); 
 </script>
 
 </body>
