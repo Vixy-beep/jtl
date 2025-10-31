@@ -1,4 +1,4 @@
-// api/index.js - Backend COMPLETO para Render
+// api/index.js - Backend COMPLETO para Render (con CORS nuclear)
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -15,12 +15,13 @@ const app = express();
 
 // --- ¡ESTA ES LA CORRECCIÓN "NUCLEAR" DE CORS! ---
 // Le decimos explícitamente que acepte peticiones de CUALQUIER LUGAR (*)
-const corsOptions = {
-  origin: '*', // <--- ESTE ES EL CAMBIO IMPORTANTE
+// y que maneje las peticiones pre-flight (OPTIONS)
+app.use(cors({
+  origin: '*', // Permite CUALQUIER origen
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   allowedHeaders: 'Content-Type,Authorization'
-};
-app.use(cors(corsOptions));
+}));
+app.options('*', cors()); // Habilita pre-flight para todas las rutas
 // --- FIN DE LA CORRECCIÓN ---
 
 app.use(express.json()); 
