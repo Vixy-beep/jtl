@@ -12,13 +12,17 @@ const DEFAULT_MONTHLY_AMOUNT = 500;
 
 // 2. Inicializar y Configurar Express
 const app = express();
-// Configuración de CORS más permisiva
-app.use(cors({
-    origin: '*', // Permite peticiones desde CUALQUIER dominio
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
-    optionsSuccessStatus: 204
-})); 
+
+// --- ¡ESTA ES LA CORRECCIÓN DE CORS! ---
+// Le decimos explícitamente que acepte peticiones de tu sitio Netlify
+const corsOptions = {
+  origin: 'https://softwarejtl.netlify.app',
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  allowedHeaders: 'Content-Type,Authorization'
+};
+app.use(cors(corsOptions));
+// --- FIN DE LA CORRECCIÓN ---
+
 app.use(express.json()); 
 
 // 3. Conexión a la Base de Datos y Variables
@@ -60,7 +64,6 @@ const productSchema = new mongoose.Schema({
 });
 const Product = mongoose.model('Product', productSchema);
 
-// --- NUEVO: Modelo para Configuración Global ---
 const settingSchema = new mongoose.Schema({
   key: { type: String, unique: true, required: true },
   value: { type: mongoose.Schema.Types.Mixed }
@@ -69,8 +72,6 @@ const Setting = mongoose.model('Setting', settingSchema);
 
 
 // 6. Seguridad: Middlewares
-
-// --- MODIFICADO: authenticateToken AHORA REVISA LA SUSCRIPCIÓN ---
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -79,21 +80,16 @@ const authenticateToken = async (req, res, next) => {
   jwt.verify(token, JWT_SECRET, async (err, user) => {
     if (err) return res.status(403).json({ message: 'Token inválido' });
     
-    // --- LÓGICA DE BLOQUEO (FEATURE 1) ---
-    // Re-verificar la tienda en la BD para datos frescos
     const store = await Store.findById(user.storeId);
     if (!store) return res.status(404).json({ message: 'Tienda no encontrada' });
     
-    // Si la tienda no es JTL, revisamos la suscripción
     if (store.name !== 'jtl') {
       const isSubActive = store.subscriptionPaidUntil && store.subscriptionPaidUntil.getTime() >= Date.now();
       if (!isSubActive) {
         return res.status(403).json({ message: 'Suscripción vencida. Contacta a JTL.' });
       }
     }
-    // --- FIN LÓGICA DE BLOQUEO ---
-
-    req.user = user; // { storeId: '...', name: '...' }
+    req.user = user;
     next();
   });
 };
@@ -108,32 +104,27 @@ const authenticateAdmin = (req, res, next) => {
 
 // 7. RUTAS DE LA API (Endpoints)
 
-// --- RUTAS PÚBLICAS (Login, Registro, Ver) ---
-
 app.get('/api/stores', async (req, res) => {
   try {
-    const stores = await Store.find({}, 'name isPublic whatsapp subscriptionPaidUntil');
+    const stores = await Store.find({}, 'name isPublic whatsapp subscriptionPaidUntil _id'); // Asegúrate de incluir _id
     res.json(stores);
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener tiendas' });
   }
 });
 
-// --- MODIFICADO: Login revisa bloqueo ---
 app.post('/api/stores/login', async (req, res) => {
   try {
     const { storeId, password } = req.body;
     const store = await Store.findById(storeId);
     if (!store) return res.status(404).json({ message: 'Tienda no encontrada' });
 
-    // --- LÓGICA DE BLOQUEO (FEATURE 1) ---
     if (store.name !== 'jtl') {
       const isSubActive = store.subscriptionPaidUntil && store.subscriptionPaidUntil.getTime() >= Date.now();
       if (!isSubActive) {
         return res.status(403).json({ message: 'Suscripción vencida. Contacta a JTL.' });
       }
     }
-    // --- FIN LÓGICA DE BLOQUEO ---
 
     const isMatch = await bcrypt.compare(password, store.password);
     if (!isMatch) return res.status(400).json({ message: 'Contraseña incorrecta' });
@@ -165,7 +156,6 @@ app.post('/api/sales/whatsapp', async (req, res) => {
         const { cart, storeId } = req.body;
         if (!cart || !storeId) return res.status(400).json({ message: 'Faltan datos' });
 
-        // TODO: Revisar suscripción aquí también
         const store = await Store.findById(storeId);
         if (store.name !== 'jtl') {
           const isSubActive = store.subscriptionPaidUntil && store.subscriptionPaidUntil.getTime() >= Date.now();
@@ -196,7 +186,6 @@ app.post('/api/sales/whatsapp', async (req, res) => {
             totalSale += total;
             totalCommission += total * (COMMISSION_PERCENT / 100);
 
-            // Actualizar stock
             product.stock -= item.qty;
             operations.push(product.save());
         }
@@ -215,10 +204,6 @@ app.post('/api/sales/whatsapp', async (req, res) => {
         res.status(500).json({ message: 'Error en Venta WhatsApp' });
     }
 });
-
-
-// --- RUTAS DE PRODUCTOS (PRIVADAS) ---
-// (Estas rutas ahora están protegidas por 'authenticateToken' que revisa la suscripción)
 
 app.post('/api/products', authenticateToken, async (req, res) => {
   try {
@@ -247,9 +232,6 @@ app.delete('/api/products/:id', authenticateToken, async (req, res) => {
     res.status(500).json({ message: 'Error al eliminar producto' });
   }
 });
-
-
-// --- RUTAS DE VENTAS (PRIVADAS) ---
 
 app.post('/api/sales/cash', authenticateToken, async (req, res) => {
   try {
@@ -326,34 +308,23 @@ app.put('/api/stores/password', authenticateToken, async (req, res) => {
     }
 });
 
-// --- NUEVO: RUTA PARA BORRAR DATOS DE TIENDA (FEATURE 3) ---
 app.delete('/api/stores/my-data', authenticateToken, async (req, res) => {
     try {
         const storeId = req.user.storeId;
         if (req.user.name === 'jtl') {
-            return res.status(403).json({ message: 'La tienda JTL no puede borrar sus propios datos de esta forma.' });
+            return res.status(403).json({ message: 'La tienda JTL no puede usar esta función.' });
         }
-        
-        // 1. Borrar todos los productos de esta tienda
         await Product.deleteMany({ store: storeId });
-        
-        // 2. Resetear las ganancias de la tienda
         await Store.findByIdAndUpdate(storeId, {
             totalRevenue: 0,
             platformFeeOwed: 0
         });
-
         res.status(200).json({ message: 'Todos tus productos y datos de ganancias han sido eliminados.' });
     } catch (error) {
         res.status(500).json({ message: 'Error al borrar los datos de la tienda' });
     }
 });
 
-
-// --- RUTAS DE SÚPER-ADMIN (JTL ONLY) ---
-// (Estas rutas arreglan el bug del DOCTYPE)
-
-// --- NUEVO: REGISTRAR TIENDA (PÚBLICA, USADA POR CURL) ---
 app.post('/api/stores/register', async (req, res) => {
   try {
     const { name, password, whatsapp } = req.body;
@@ -364,7 +335,6 @@ app.post('/api/stores/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     
-    // Buscar el monto mensual en la BD
     let amount = DEFAULT_MONTHLY_AMOUNT;
     const setting = await Setting.findOne({ key: 'monthly_amount' });
     if(setting) amount = Number(setting.value) || DEFAULT_MONTHLY_AMOUNT;
@@ -373,7 +343,7 @@ app.post('/api/stores/register', async (req, res) => {
       name: name,
       password: hashedPassword,
       whatsapp: whatsapp || '',
-      subscriptionPaidUntil: new Date(Date.now() + SUBSCRIPTION_MS) // +30 días gratis
+      subscriptionPaidUntil: new Date(Date.now() + SUBSCRIPTION_MS)
     });
     await newStore.save();
     res.status(201).json({ message: 'Tienda registrada con éxito', storeId: newStore._id });
@@ -382,7 +352,6 @@ app.post('/api/stores/register', async (req, res) => {
   }
 });
 
-// --- NUEVO: CREAR TIENDA (JTL) ---
 app.post('/api/stores', authenticateToken, authenticateAdmin, async (req, res) => {
     try {
         const { name, password, whatsapp, isPublic } = req.body;
@@ -409,7 +378,6 @@ app.post('/api/stores', authenticateToken, authenticateAdmin, async (req, res) =
     }
 });
 
-// --- NUEVO: ALTERNAR PÚBLICA/PRIVADA (JTL) ---
 app.put('/api/stores/:id/public', authenticateToken, authenticateAdmin, async (req, res) => {
     try {
         const storeId = req.params.id;
@@ -421,7 +389,6 @@ app.put('/api/stores/:id/public', authenticateToken, authenticateAdmin, async (r
     }
 });
 
-// --- NUEVO: REGISTRAR PAGO (JTL) ---
 app.put('/api/stores/:id/pay', authenticateToken, authenticateAdmin, async (req, res) => {
     try {
         const storeId = req.params.id;
@@ -442,7 +409,6 @@ app.put('/api/stores/:id/pay', authenticateToken, authenticateAdmin, async (req,
     }
 });
 
-// --- NUEVO: BORRAR TIENDA (JTL) ---
 app.delete('/api/stores/:id', authenticateToken, authenticateAdmin, async (req, res) => {
     try {
         const storeId = req.params.id;
@@ -458,7 +424,6 @@ app.delete('/api/stores/:id', authenticateToken, authenticateAdmin, async (req, 
     }
 });
 
-// --- NUEVO: RUTAS DE MONTO MENSUAL (FEATURE 2) ---
 app.get('/api/settings/monthly_amount', authenticateToken, authenticateAdmin, async (req, res) => {
     try {
         let setting = await Setting.findOne({ key: 'monthly_amount' });
@@ -480,7 +445,7 @@ app.put('/api/settings/monthly_amount', authenticateToken, authenticateAdmin, as
         const updatedSetting = await Setting.findOneAndUpdate(
             { key: 'monthly_amount' },
             { value: Number(value) },
-            { new: true, upsert: true } // new:true devuelve el doc actualizado, upsert:true lo crea si no existe
+            { new: true, upsert: true }
         );
         res.json(updatedSetting);
     } catch (error) {
