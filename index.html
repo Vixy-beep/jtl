@@ -1,0 +1,909 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tienda JTL — Multi-Tienda (Fullstack)</title>
+  
+  <link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo">JTL</div>
+    <div>
+      <p style="margin:0;font-weight:600;color:var(--accent2)" id="header-store-name">Cargando...</p>
+      <p style="font-size:12px;margin:0;color:var(--muted)" id="header-store-sub">DeliveryYa • Santiago de los Caballeros</p>
+    </div>
+    <nav>
+      <button class="btn sm" id="theme-toggle" title="Cambiar tema">🌙</button>
+      <span id="admin-btn" style="cursor:pointer;font-size:14px;color:var(--accent2);font-weight:600">Admin</span>
+      <a class="btn" id="wa-link" target="_blank">WhatsApp</a>
+    </nav>
+  </header>
+
+  <div class="topbar">
+    <select id="filter-category" style="padding:10px 14px;border-radius:999px;border:1px solid #e6edf3;background:white;">
+      <option value="">Todas</option>
+    </select>
+    <div class="search" style="flex:1;">
+      <input id="search" placeholder="Buscar productos...">
+    </div>
+  </div>
+
+  <main class="layout" style="display:flex;gap:20px;align-items:start">
+    <section style="flex:1"><div class="products" id="products"></div></section>
+    <aside class="sidebar" style="width:320px">
+      <div class="cart">
+        <strong>Carrito</strong>
+        <div id="cart-items"></div>
+        <div style="display:flex;justify-content:space-between"><span>Subtotal</span><span id="subtotal">RD$0</span></div>
+        <div style="display:flex;justify-content:space-between;font-weight:700"><span>Total</span><span id="total">RD$0</span></div>
+        <button class="btn secondary" id="clear-cart">Vaciar</button>
+        <button class="btn" id="buy-whatsapp">Comprar por WhatsApp</button>
+      </div>
+    </aside>
+  </main>
+
+  <footer>Diseñado para Tienda JTL — Tema Minimal Moderna</footer>
+</div>
+
+<div id="floating-cart-btn">🛒 Carrito</div>
+<div id="mobile-cart-panel">
+  <div id="mobile-cart-close">Cerrar ✖</div>
+  <strong>Carrito</strong>
+  <div id="cart-items-mobile"></div>
+  <div style="display:flex;justify-content:space-between"><span>Subtotal</span><span id="subtotal-mobile">RD$0</span></div>
+  <div style="display:flex;justify-content:space-between;font-weight:700"><span>Total</span><span id="total-mobile">RD$0</span></div>
+  <button class="btn secondary" id="clear-cart-mobile">Vaciar</button>
+  <button class="btn" id="buy-whatsapp-mobile">Comprar por WhatsApp</button>
+</div>
+
+<div id="pass-modal">
+  <div class="panel-box">
+    <h3>🔐 Acceso — Selecciona la tienda</h3>
+    <select id="login-store-select"></select>
+    <input id="admin-pass" type="password" placeholder="Contraseña de la tienda...">
+    <p id="pass-error" style="color:red;display:none;font-size:13px;margin-top:6px;">Contraseña incorrecta</p>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn" id="pass-enter">Entrar</button>
+      <button class="btn secondary" id="pass-cancel">Cancelar</button>
+    </div>
+    <hr style="margin:12px 0;">
+    <p class="muted-small">*Solo la tienda JTL puede crear o eliminar tiendas.*</p>
+  </div>
+</div>
+
+<div id="block-modal">
+  <div class="panel-box" style="text-align:center">
+    <h3>🔒 Suscripción vencida</h3>
+    <p id="block-msg">La tienda está bloqueada por falta de pago.</p>
+    <p class="muted-small">Contacta a JTL para desbloquear la tienda.</p>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">
+      <button class="btn secondary" id="block-cancel-btn">Cerrar</button>
+      <a id="block-wa-btn" class="btn" href="#" target="_blank">Renovar por WhatsApp</a>
+    </div>
+  </div>
+</div>
+
+<div id="admin-panel">
+  <div class="panel-box" style="display:flex;flex-direction:column;gap:10px;">
+    <h2 style="text-align:center;color:var(--accent2);margin-bottom:6px;">📦 Panel Administrativo — Multi-Tienda</h2>
+
+    <div style="display:flex;gap:8px;align-items:center;">
+      <select id="admin-store-selector" style="flex:1;padding:8px;border-radius:8px;border:1px solid #e6edf3;"></select>
+      <button class="btn sm" id="btn-new-store" style="display:none">+ Nueva</button>
+    </div>
+
+    <div id="new-store-box" style="display:none;padding:10px;background:#fbfdff;border-radius:8px;">
+      <input id="new-store-name" placeholder="Nombre de la tienda">
+      <input id="new-store-wa" placeholder="WhatsApp (ej: 18093108421) - opcional">
+      <input id="new-store-pass" placeholder="Contraseña de administrador">
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <button class="btn" id="create-store">Crear tienda</button>
+        <button class="btn secondary" id="cancel-create">Cancelar</button>
+      </div>
+    </div>
+
+    <div id="stats" style="padding:10px;margin-bottom:6px;background:#eefcfb;border-radius:8px;">
+      <p><strong>Tienda activa:</strong> <span id="stat-store-name">-</span></p>
+      <p><strong>Total productos:</strong> <span id="stat-count">0</span></p>
+      <p><strong>Unidades en inventario:</strong> <span id="stat-stock">0</span></p>
+      <p><strong>Valor total del inventario:</strong> RD$<span id="stat-value">0</span></p>
+      <p><strong>Ingresos tienda:</strong> RD$<span id="stat-profit">0</span></p>
+      <p><strong>Comisión pendiente para JTL:</strong> RD$<span id="stat-platform">0</span></p>
+      <p><strong>Suscripción:</strong> <span id="stat-sub">—</span></p>
+      <button id="reset-profit" style="margin-top:6px;padding:6px 10px;border:none;background:#d9534f;color:white;border-radius:6px;cursor:pointer;">
+        Resetear Ganancias
+      </button>
+    </div>
+
+    <div id="subscription-card-container" style="margin-bottom:6px;display:none;">
+      </div>
+
+    <input id="p-name" placeholder="Nombre">
+    <input id="p-category" placeholder="Categoría">
+    <input id="p-price" placeholder="Precio" type="number" min="0" step="0.01">
+    <input id="p-stock" placeholder="Stock" type="number" min="0" step="1">
+    <input id="p-img-file" type="file" accept="image/*">
+    <button class="btn" id="add-product" style="margin-top:6px;">Guardar Producto</button>
+
+    <table>
+      <thead><tr><th>Nombre</th><th>Precio</th><th>Stock</th><th>Cat.</th><th>Acciones</th></tr></thead>
+      <tbody id="admin-list"></tbody>
+    </table>
+
+    <div style="display:flex;gap:8px;">
+      <button class="btn secondary" style="flex:1" id="close-admin">Cerrar</button>
+      <button id="delete-all" style="flex:1;padding:10px;border:none;background:#ef4444;color:white;font-weight:700;border-radius:8px;cursor:pointer;display:none;">
+        🗑️ Borrar Datos (esta tienda)
+      </button>
+    </div>
+
+    <hr style="margin:6px 0;">
+    <h3 style="color:var(--accent2);text-align:center;">💵 Venta en Efectivo</h3>
+    <p class="muted" style="text-align:center;margin-top:-6px;">
+      Solo el administrador de la tienda puede registrar pagos en efectivo.
+    </p>
+    <select id="cash-sale-product" style="width:100%;margin-top:10px;padding:10px;border-radius:8px;border:1px solid #e6edf3;">
+      <option value="">Seleccionar producto...</option>
+    </select>
+    <input id="cash-sale-qty" type="number" placeholder="Cantidad vendida" style="margin-top:6px;" min="1" step="1">
+    <input id="cash-sale-paid" type="number" placeholder="Monto recibido (RD$)" style="margin-top:6px;" min="0" step="0.01">
+    <button class="btn" id="cash-sale-btn" style="margin-top:10px;width:100%;">Registrar Venta</button>
+    <div id="cash-sale-result" style="margin-top:10px;font-weight:600;text-align:center;"></div>
+
+    <hr style="margin:8px 0;">
+
+    <div id="jtl-admin-section" style="display:none;">
+      <h4 style="margin:6px 0;color:var(--accent2)">Tiendas (gestionadas por JTL)</h4>
+      <div class="store-list" id="store-list"></div>
+      <p class="muted">Solo la tienda JTL puede crear/editar/eliminar tiendas.</p>
+    </div>
+
+    <hr style="margin:8px 0;">
+    <h4>Cambiar contraseña de la tienda actual</h4>
+    <input id="change-pass-new" placeholder="Nueva contraseña (mín 6 caracteres)">
+    <div style="display:flex;gap:8px;">
+      <button class="btn" id="change-pass-btn">Cambiar contraseña</button>
+      <button class="btn secondary" id="toggle-public-btn" style="display:none;">Alternar pública/privada</button>
+    </div>
+
+    <div style="margin-top:10px;">
+      <div id="monthly-control" style="display:none;margin-top:6px;">
+        <label style="font-weight:700;margin-bottom:6px;display:block;">Monto mensual (RD$)</label>
+        <input id="monthly-input" placeholder="RD$500">
+        <button class="btn" id="save-monthly-btn" style="margin-top:6px;">Guardar monto mensual</button>
+      </div>
+
+      <div style="margin-top:8px;">
+        <button class="btn" id="register-pay-btn" style="width:100%;display:none;">Registrar pago mensual (+30 días)</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ----------------- MULTI-TIENDA FULLSTACK (CLIENTE) ----------------- */
+
+// --- Variables Globales ---
+const THEME_KEY = 'jt_theme_v2';
+const API_URL = 'http://localhost:3000'; // URL de nuestro backend
+
+// Estado de la aplicación
+let ALL_STORES = []; // Lista de todas las tiendas (viene del backend)
+let ACTIVE_STORE = null; // La tienda que el PÚBLICO está viendo
+let LOGGED_IN_STORE = null; // La tienda del ADMIN que inició sesión
+let products = []; // Productos de la tienda activa
+let cart = [];
+
+// --- Helpers de Autenticación ---
+function getToken(){ return localStorage.getItem('authToken'); }
+function saveToken(token){ localStorage.setItem('authToken', token); }
+function removeToken(){ localStorage.removeItem('authToken'); }
+function getAuthHeaders(){
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + getToken()
+  };
+}
+
+/* ---------- helpers ---------- */
+function formatRD(value){ return 'RD$' + Number(value).toFixed(2); }
+function daysUntil(msStr){ 
+  if (!msStr) return 0;
+  const ms = new Date(msStr).getTime();
+  return Math.max(0, Math.ceil((ms - Date.now()) / (24*60*60*1000))); 
+}
+
+/* ---------- DOM ---------- */
+const productsWrap = document.getElementById('products');
+const cartItems = document.getElementById('cart-items');
+const subtotalEl = document.getElementById('subtotal');
+const totalEl = document.getElementById('total');
+const mobileCartPanel = document.getElementById('mobile-cart-panel');
+const floatingCartBtn = document.getElementById('floating-cart-btn');
+const adminBtn = document.getElementById('admin-btn');
+const passModal = document.getElementById('pass-modal');
+const adminPanel = document.getElementById('admin-panel');
+const passError = document.getElementById('pass-error');
+const pName = document.getElementById('p-name');
+const pCategory = document.getElementById('p-category');
+const pPrice = document.getElementById('p-price');
+const pStock = document.getElementById('p-stock');
+const statCount = document.getElementById('stat-count');
+const statStock = document.getElementById('stat-stock');
+const statValue = document.getElementById('stat-value');
+const statProfit = document.getElementById('stat-profit');
+const statPlatform = document.getElementById('stat-platform');
+const statStoreName = document.getElementById('stat-store-name');
+const statSub = document.getElementById('stat-sub');
+const filterCategory = document.getElementById('filter-category');
+const searchInput = document.getElementById('search');
+const adminStoreSelector = document.getElementById('admin-store-selector');
+const btnNewStore = document.getElementById('btn-new-store');
+const newStoreBox = document.getElementById('new-store-box');
+const newStoreName = document.getElementById('new-store-name');
+const newStoreWa = document.getElementById('new-store-wa');
+const newStorePass = document.getElementById('new-store-pass');
+const createStoreBtn = document.getElementById('create-store');
+const cancelCreateBtn = document.getElementById('cancel-create');
+const adminListTbody = document.getElementById('admin-list');
+const cashSelect = document.getElementById('cash-sale-product');
+const cashQty = document.getElementById('cash-sale-qty');
+const cashPaid = document.getElementById('cash-sale-paid');
+const cashResult = document.getElementById('cash-sale-result');
+const storeListDiv = document.getElementById('store-list');
+const headerStoreName = document.getElementById('header-store-name');
+const headerStoreSub = document.getElementById('header-store-sub');
+const waLink = document.getElementById('wa-link');
+const loginStoreSelect = document.getElementById('login-store-select');
+const loginPassInput = document.getElementById('admin-pass');
+const passEnterBtn = document.getElementById('pass-enter');
+const passCancelBtn = document.getElementById('pass-cancel');
+const blockModal = document.getElementById('block-modal');
+const blockCancelBtn = document.getElementById('block-cancel-btn');
+const blockMsg = document.getElementById('block-msg');
+const blockWaBtn = document.getElementById('block-wa-btn');
+const changePassInput = document.getElementById('change-pass-new');
+const changePassBtn = document.getElementById('change-pass-btn');
+const togglePublicBtn = document.getElementById('toggle-public-btn');
+const markPaidBtn = document.getElementById('register-pay-btn');
+const monthlyControlDiv = document.getElementById('monthly-control');
+const monthlyInput = document.getElementById('monthly-input');
+const saveMonthlyBtn = document.getElementById('save-monthly-btn');
+const themeToggle = document.getElementById('theme-toggle');
+const subscriptionCardContainer = document.getElementById('subscription-card-container');
+const resetProfitBtn = document.getElementById('reset-profit');
+const jtlAdminSection = document.getElementById('jtl-admin-section');
+
+/* ---------- Header / WA / Theme ---------- */
+function renderHeader(){
+  if (!ACTIVE_STORE) return;
+  headerStoreName.textContent = ACTIVE_STORE.name;
+  headerStoreSub.textContent = `DeliveryYa • Santiago de los Caballeros`;
+  waLink.href = `https://wa.me/${ACTIVE_STORE.whatsapp || '18093108421'}`;
+}
+
+function applyThemeFromStorage(){
+  const t = localStorage.getItem(THEME_KEY) || 'light';
+  if(t === 'dark') document.body.classList.add('dark');
+  else document.body.classList.remove('dark');
+  themeToggle.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+}
+themeToggle.onclick = () => {
+  document.body.classList.toggle('dark');
+  const now = document.body.classList.contains('dark') ? 'dark' : 'light';
+  localStorage.setItem(THEME_KEY, now);
+  themeToggle.textContent = now === 'dark' ? '☀️' : '🌙';
+};
+
+/* ---------- Productos / UI (Pública) ---------- */
+
+// Carga productos de la tienda activa
+async function loadProductsFor(storeId) {
+  console.log(`Buscando productos para ${storeId} en el backend...`);
+  try {
+    const response = await fetch(`${API_URL}/api/products/${storeId}`);
+    if (!response.ok) {
+      console.error('Error del servidor:', response.status);
+      return [];
+    }
+    const data = await response.json();
+    console.log('Productos recibidos:', data);
+    return data;
+  } catch (error) {
+    console.error('No se pudo conectar al servidor:', error);
+    return []; 
+  }
+}
+
+// Renderiza estadísticas (llamado desde el admin)
+async function renderStats(storeId) {
+  try {
+    const response = await fetch(`${API_URL}/api/stats/${storeId}`, { headers: getAuthHeaders() });
+    if (!response.ok) throw new Error('No se pudieron cargar las estadísticas');
+    const stats = await response.json();
+    
+    const c = products.length;
+    const u = products.reduce((a,b)=>a+(b.stock||0),0);
+    const v = products.reduce((a,b)=>a + ((b.stock||0) * (Number(b.price)||0)), 0);
+    
+    statCount.textContent = c;
+    statStock.textContent = u;
+    statValue.textContent = v.toFixed(2);
+    statProfit.textContent = (stats.totalRevenue || 0).toFixed(2);
+    statPlatform.textContent = (stats.platformFeeOwed || 0).toFixed(2);
+    statStoreName.textContent = stats.name || '-';
+
+    const days = daysUntil(stats.subscriptionPaidUntil);
+    statSub.textContent = days > 0 ? `Activa — vence en ${days} días` : 'Vencida — bloqueada';
+  } catch (error) {
+    console.error('Error renderStats:', error.message);
+    statProfit.textContent = 'Error';
+    statPlatform.textContent = 'Error';
+  }
+}
+
+function loadCategoryFilter(){
+  const cats = [...new Set(products.map(p => p.category || 'General'))];
+  filterCategory.innerHTML = `<option value="">Todas</option>` + cats.map(c => `<option value="${c.toLowerCase()}">${c}</option>`).join('');
+}
+
+function renderProducts(filterText = ''){
+  productsWrap.innerHTML = '';
+  const cat = filterCategory.value.toLowerCase() || '';
+  const ft = filterText.toLowerCase();
+  const list = products.filter(p => {
+    const n = (p.name||'').toLowerCase();
+    const c = (p.category||'general').toLowerCase();
+    return (n.includes(ft) || c.includes(ft)) && (cat === '' || c === cat);
+  });
+
+  if(list.length === 0){
+    productsWrap.innerHTML = '<p>No hay productos</p>';
+    return;
+  }
+
+  list.forEach(p => {
+    const s = p.stock > 1 ? `<small>Stock: ${p.stock}</small>` : p.stock === 1 ? `<small style="color:#f97316">🔔 Última unidad</small>` : `<small style="color:red">Agotado</small>`;
+    const card = document.createElement('div');
+    card.className = 'card';
+    const img = p.img || 'https://via.placeholder.com/400x300?text=No+Image';
+    card.innerHTML = `
+      <img src="${img}" alt="${p.name}">
+      <h4 style="margin:6px 0 0 0">${p.name}</h4>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        <span class="price">${formatRD(p.price)}</span><span class="badge-cat">${p.category||'General'}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        ${s}
+        <div>
+          <button class="btn sm secondary" ${p.stock<=0?'disabled':''} data-add="${p._id}">Añadir</button>
+          <button class="btn sm" style="margin-left:6px" data-wa="${p._id}">Pedir</button>
+        </div>
+      </div>
+    `;
+    productsWrap.appendChild(card);
+  });
+
+  productsWrap.querySelectorAll('[data-add]').forEach(btn => {
+    btn.onclick = () => addToCart(btn.getAttribute('data-add'));
+  });
+  productsWrap.querySelectorAll('[data-wa]').forEach(btn => {
+    btn.onclick = () => {
+      const pid = btn.getAttribute('data-wa');
+      const p = products.find(x=>x._id===pid);
+      if(!p) return;
+      const waNumber = ACTIVE_STORE?.whatsapp || '18093108421';
+      const msg = encodeURIComponent(`Hola, quiero pedir: *${p.name}* — ${formatRD(p.price)} desde *${ACTIVE_STORE?.name || 'la tienda'}*`);
+      window.open(`https://wa.me/${waNumber}?text=${msg}`, '_blank');
+    };
+  });
+}
+
+function renderCart(){
+  const cont = [
+    { w: cartItems, s: subtotalEl, t: totalEl },
+    { w: document.getElementById('cart-items-mobile'), s: document.getElementById('subtotal-mobile'), t: document.getElementById('total-mobile') }
+  ];
+  cont.forEach(c => c.w.innerHTML = '');
+  let sub = 0;
+  cart.forEach(it => {
+    const p = products.find(x => x._id === it.productId);
+    if(!p) return;
+    const line = document.createElement('div');
+    line.style.marginBottom = '8px';
+    line.innerHTML = `${p.name} x${it.qty} <span style="float:right">${formatRD(p.price * it.qty)}</span>`;
+    cont.forEach(c => c.w.appendChild(line.cloneNode(true)));
+    sub += p.price * it.qty;
+  });
+  cont.forEach(c => { c.s.textContent = formatRD(sub); c.t.textContent = formatRD(sub); });
+}
+
+function addToCart(productId){
+  const p = products.find(x => x._id === productId);
+  if(!p) return alert('Producto no encontrado');
+  if(p.stock <= 0) return alert('Sin stock');
+  const ex = cart.find(c => c.productId === productId);
+  if(ex){
+    if(ex.qty < p.stock) ex.qty++;
+    else return alert('Stock insuficiente');
+  } else {
+    cart.push({ productId: productId, qty: 1 });
+  }
+  renderCart();
+}
+
+/* ---------- carrito botones ---------- */
+document.getElementById('clear-cart').onclick = () => { cart = []; renderCart(); };
+document.getElementById('clear-cart-mobile').onclick = () => { cart = []; renderCart(); mobileCartPanel.style.display = 'none'; };
+
+document.getElementById('buy-whatsapp').onclick = buyWhatsAppHandler;
+document.getElementById('buy-whatsapp-mobile').onclick = () => { buyWhatsAppHandler(); mobileCartPanel.style.display = 'none'; };
+
+async function buyWhatsAppHandler(){
+  if(cart.length === 0) return alert('Carrito vacío');
+  // TODO: Verificar suscripción desde el objeto ACTIVE_STORE!
+  
+  try {
+    // 1. Informar al backend de la venta para que actualice el stock
+    const response = await fetch(`${API_URL}/api/sales/whatsapp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cart: cart, storeId: ACTIVE_STORE._id })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Error al procesar la venta');
+    }
+
+    // 2. Si el backend da OK, construimos el mensaje de WhatsApp
+    let total = 0;
+    let msg = "🛍 *Pedido*%0A%0A";
+    cart.forEach(it => {
+      const p = products.find(x => x._id === it.productId);
+      if(!p) return;
+      total += p.price * it.qty;
+      msg += `• ${p.name} x${it.qty} - RD$${(p.price*it.qty).toFixed(2)}%0A`;
+    });
+
+    msg += `%0A💰 *Total:* RD$${total.toFixed(2)}%0A%0A🚚 *DeliveryYa — Santiago*%0A%0A¿Dirección para entregar?`;
+    const wa = `https://wa.me/${ACTIVE_STORE?.whatsapp || '18093108421'}?text=` + msg;
+    window.open(wa, '_blank');
+
+    // 3. Limpiamos y recargamos
+    cart = [];
+    products = await loadProductsFor(ACTIVE_STORE._id); // Recargar productos con nuevo stock
+    renderProducts();
+    renderCart();
+
+  } catch (error) {
+    console.error('Error en buyWhatsAppHandler:', error);
+    alert('Error al procesar el pedido: ' + error.message);
+  }
+}
+
+/* ---------- LOGIN ADMIN: ahora por tienda (con bloqueo) ---------- */
+adminBtn.onclick = () => {
+  // populateLoginStores ya se llamó en initPublicUI
+  passError.style.display = 'none';
+  loginPassInput.value = '';
+  passModal.style.display = 'flex';
+};
+
+function populateLoginStores(){
+  // Esta función ahora usa la variable global ALL_STORES
+  // Y usa el _id de MongoDB como el 'value'
+  loginStoreSelect.innerHTML = ALL_STORES.map(s => `<option value="${s._id}">${s.name} ${s.isPublic ? '( pública )' : '( privada )'}</option>`).join('');
+}
+
+passEnterBtn.onclick = async () => {
+  const storeId = loginStoreSelect.value; // Esto ahora es el _id de MongoDB
+  const password = loginPassInput.value || '';
+  passError.style.display = 'none';
+
+  try {
+    const response = await fetch(`${API_URL}/api/stores/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ storeId: storeId, password: password })
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Contraseña incorrecta');
+
+    saveToken(data.token);
+    LOGGED_IN_STORE = data.store; // Guardamos el objeto de la tienda logueada
+    
+    passModal.style.display = 'none';
+    loginPassInput.value = '';
+    adminPanel.style.display = 'flex';
+    
+    await initAdminUI(LOGGED_IN_STORE); // Pasamos el objeto completo
+    
+  } catch (error) {
+    console.error('Error de login:', error);
+    passError.textContent = error.message;
+    passError.style.display = 'block';
+  }
+};
+
+passCancelBtn.onclick = () => { passModal.style.display = 'none'; passError.style.display = 'none'; };
+
+/* ---------- Admin panel (inicializar con tienda específica) ---------- */
+async function initAdminUI(store){
+  // store es el objeto de la tienda logueada
+  adminStoreSelector.innerHTML = ALL_STORES.map(s => `<option value="${s._id}">${s.name}</option>`).join('');
+  adminStoreSelector.value = store._id;
+
+  // Si no es JTL, deshabilitamos el selector de tiendas
+  if (store.name !== 'jtl') {
+    adminStoreSelector.disabled = true;
+  } else {
+    adminStoreSelector.disabled = false;
+  }
+
+  // Cargar datos para la tienda seleccionada
+  await loadAdminDataForStore(store._id);
+
+  // Manejador para cuando JTL cambia de tienda en el admin
+  adminStoreSelector.onchange = async () => {
+    const selectedStoreId = adminStoreSelector.value;
+    await loadAdminDataForStore(selectedStoreId);
+  };
+}
+
+// Función helper para cargar todos los datos del panel de admin
+async function loadAdminDataForStore(storeId) {
+  try {
+    products = await loadProductsFor(storeId);
+    await renderStats(storeId);
+    await loadAdminList();
+    await loadCashSelect();
+    renderStoreList(); // La lista de tiendas (para JTL)
+    renderAdminControlsVisibility();
+    // renderSubscriptionCardFor(storeId); // TODO: Implementar si se desea
+  } catch (error) {
+    console.error('Error al cargar datos de admin:', error);
+    alert('Error al cargar datos del admin: ' + error.message);
+  }
+}
+
+/* ---------- Lista admin y acciones de tiendas (JTL) ---------- */
+function renderStoreList(){
+  if (!LOGGED_IN_STORE || LOGGED_IN_STORE.name !== 'jtl') {
+    jtlAdminSection.style.display = 'none';
+    return;
+  }
+  jtlAdminSection.style.display = 'block';
+  
+  storeListDiv.innerHTML = '';
+  ALL_STORES.forEach(s => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const days = daysUntil(s.subscriptionPaidUntil);
+    const subActive = days > 0;
+    row.innerHTML = `
+      <div>
+        <div style="font-weight:700">${s.name}${s.name ==='jtl' ? ' — (Principal)' : ''}</div>
+        <div class="muted" style="font-size:12px">ID: ${s._id}</div>
+        <div style="margin-top:4px">${subActive ? `<span class="status-pill">Activa (${days} días)</span>` : '<span class="status-pill">Suscripción vencida</span>'}</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn sm" data-make="${s._id}" data-public="${s.isPublic}">${s.isPublic ? 'Pública' : 'Privada'}</button>
+        <button class="btn sm" data-pay="${s._id}">+30 Días</button>
+        <button class="btn sm" data-del="${s._id}" style="background:#ef4444" ${s.name === 'jtl' ? 'disabled' : ''}>Eliminar</button>
+      </div>
+    `;
+    storeListDiv.appendChild(row);
+  });
+
+  // Manejadores para botones de JTL
+  storeListDiv.querySelectorAll('[data-make]').forEach(b => {
+    b.onclick = async () => {
+      const id = b.getAttribute('data-make');
+      const isCurrentlyPublic = b.getAttribute('data-public') === 'true';
+      if (!confirm(`¿Desea hacer esta tienda ${isCurrentlyPublic ? 'PRIVADA' : 'PÚBLICA'}?`)) return;
+      try {
+        const response = await fetch(`${API_URL}/api/stores/${id}/public`, {
+          method: 'PUT',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ isPublic: !isCurrentlyPublic })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message);
+        alert('Estado de la tienda actualizado.');
+        // Recargar la lista de tiendas
+        ALL_STORES = await (await fetch(`${API_URL}/api/stores`)).json();
+        renderStoreList();
+      } catch (error) { alert('Error: ' + error.message); }
+    };
+  });
+
+  storeListDiv.querySelectorAll('[data-pay]').forEach(b => {
+    b.onclick = async () => {
+      const id = b.getAttribute('data-pay');
+      if (!confirm(`¿Registrar pago de 30 días para esta tienda?`)) return;
+      try {
+        const response = await fetch(`${API_URL}/api/stores/${id}/pay`, {
+          method: 'PUT',
+          headers: getAuthHeaders()
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message);
+        alert('Pago registrado. La suscripción ha sido extendida.');
+        // Recargar tiendas y actualizar stats
+        ALL_STORES = await (await fetch(`${API_URL}/api/stores`)).json();
+        renderStoreList();
+        await renderStats(adminStoreSelector.value);
+      } catch (error) { alert('Error: ' + error.message); }
+    };
+  });
+
+  storeListDiv.querySelectorAll('[data-del]').forEach(b => {
+    b.onclick = async () => {
+      const id = b.getAttribute('data-del');
+      if (!confirm('¿ELIMINAR esta tienda y TODOS sus productos? Esta acción es irreversible.')) return;
+      try {
+        const response = await fetch(`${API_URL}/api/stores/${id}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message);
+        alert('Tienda eliminada.');
+        // Recargar la lista de tiendas
+        ALL_STORES = await (await fetch(`${API_URL}/api/stores`)).json();
+        populateLoginStores();
+        renderStoreList();
+      } catch (error) { alert('Error: ' + error.message); }
+    };
+  });
+}
+
+/* ---------- Admin: lista productos y acciones ---------- */
+async function loadAdminList(){
+  adminListTbody.innerHTML = '';
+  const list = products; // 'products' es ahora la lista de la tienda seleccionada
+  list.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${p.name}</td><td>${formatRD(p.price)}</td><td>${p.stock}</td><td>${p.category||'General'}</td>
+      <td>
+        <button class="btn sm" data-del="${p._id}">Eliminar</button>
+      </td>`;
+    adminListTbody.appendChild(tr);
+  });
+  
+  adminListTbody.querySelectorAll('[data-del]').forEach(b => {
+    b.onclick = async () => {
+      const productId = b.getAttribute('data-del');
+      if (!confirm('¿Seguro que quieres eliminar este producto?')) return;
+      try {
+        const response = await fetch(`${API_URL}/api/products/${productId}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message);
+        alert('¡Producto eliminado!');
+        await loadAdminDataForStore(adminStoreSelector.value); // Recargar todo
+      } catch (error) {
+        console.error('Error al eliminar:', error);
+        alert('Error al eliminar: ' + error.message);
+      }
+    };
+  });
+}
+
+// Botón "Guardar Producto"
+document.getElementById('add-product').onclick = async () => {
+  const name = pName.value.trim();
+  const category = pCategory.value.trim() || 'General';
+  const price = Number(pPrice.value) || 0;
+  const stock = Number(pStock.value) || 0;
+  // const img = ... (manejo de imágenes es más complejo, omitido)
+
+  try {
+    const response = await fetch(`${API_URL}/api/products`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ name, category, price, stock })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message);
+    
+    alert('¡Producto guardado en la base de datos!');
+    pName.value = pCategory.value = pPrice.value = pStock.value = '';
+    await loadAdminDataForStore(adminStoreSelector.value); // Recargar todo
+  
+  } catch (error) {
+    console.error('Error al guardar:', error);
+    alert('Error al guardar: ' + error.message);
+  }
+};
+
+/* ---------- Venta en efectivo (con comisión) ---------- */
+async function loadCashSelect(){
+  const list = products;
+  cashSelect.innerHTML = '<option value="">Seleccionar producto...</option>' + list.map(p => `<option value="${p._id}">${p.name} — ${formatRD(p.price)}</Loption>`).join('');
+}
+
+document.getElementById('cash-sale-btn').onclick = async () => { 
+  const productId = cashSelect.value;
+  const quantity = Number(cashQty.value) || 0;
+  const paidAmount = Number(cashPaid.value) || 0;
+  cashResult.textContent = '';
+
+  try {
+    const response = await fetch(`${API_URL}/api/sales/cash`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ productId, quantity, paidAmount })
+    });
+    
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message);
+
+    cashResult.textContent = data.message;
+    cashQty.value = '';
+    cashPaid.value = '';
+    
+    // Recargar datos para ver nuevo stock y ganancias
+    await loadAdminDataForStore(adminStoreSelector.value);
+
+  } catch (error) {
+    console.error('Error en Venta en Efectivo:', error);
+    cashResult.textContent = 'Error: ' + error.message;
+  }
+};
+
+/* ---------- Filtros y búsqueda ---------- */
+filterCategory.onchange = () => renderProducts(searchInput.value);
+searchInput.oninput = () => renderProducts(searchInput.value);
+
+/* ---------- Panel y carrito móviles ---------- */
+floatingCartBtn.onclick = () => { mobileCartPanel.style.display = 'block'; };
+document.getElementById('mobile-cart-close').onclick = () => { mobileCartPanel.style.display = 'none'; };
+
+/* ---------- Controles de Admin (Crear Tienda, Cambiar Pass, etc.) ---------- */
+btnNewStore.onclick = () => { newStoreBox.style.display = newStoreBox.style.display === 'none' ? 'block' : 'none'; };
+cancelCreateBtn.onclick = () => { newStoreBox.style.display = 'none'; newStoreName.value = newStoreWa.value = newStorePass.value = ''; };
+
+createStoreBtn.onclick = async () => {
+  const name = newStoreName.value.trim();
+  const whatsapp = newStoreWa.value.trim();
+  const password = newStorePass.value.trim();
+  if (!name || !password) return alert('Nombre y contraseña requeridos');
+  try {
+    const response = await fetch(`${API_URL}/api/stores`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ name, whatsapp, password, isPublic: false })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message);
+    
+    alert('Tienda creada con éxito.');
+    newStoreBox.style.display = 'none';
+    newStoreName.value = newStoreWa.value = newStorePass.value = '';
+    
+    // Recargar lista de tiendas
+    ALL_STORES = await (await fetch(`${API_URL}/api/stores`)).json();
+    populateLoginStores();
+    renderStoreList();
+  } catch (error) { alert('Error: ' + error.message); }
+};
+
+changePassBtn.onclick = async () => {
+  const newPassword = (changePassInput.value || '').trim();
+  if (!newPassword || newPassword.length < 6) return alert('La contraseña debe tener al menos 6 caracteres');
+  if (!confirm('¿Seguro que quieres cambiar tu contraseña?')) return;
+  try {
+    const response = await fetch(`${API_URL}/api/stores/password`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ newPassword })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message);
+    
+    changePassInput.value = '';
+    alert('Contraseña actualizada con éxito.');
+  } catch (error) { alert('Error: ' + error.message); }
+};
+
+togglePublicBtn.onclick = () => {
+  const selectedStoreId = adminStoreSelector.value;
+  const store = ALL_STORES.find(s => s._id === selectedStoreId);
+  if (!store) return;
+  
+  const btn = storeListDiv.querySelector(`[data-make="${selectedStoreId}"]`);
+  if (btn) btn.click(); // Simulamos el clic en el botón de la lista
+};
+
+/* Reset profit */
+resetProfitBtn.onclick = async () => {
+  if (!confirm('¿Seguro que desea resetear las ganancias y comisiones de esta tienda?')) return;
+  try {
+    const response = await fetch(`${API_URL}/api/stores/resetprofit`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+      // El backend sabe qué tienda es por el token
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message);
+    
+    alert('Ganancias y comisiones reseteadas.');
+    await renderStats(LOGGED_IN_STORE._id);
+  } catch (error) { alert('Error: ' + error.message); }
+};
+
+/* mostrar/ocultar controles JTL segun sesión */
+// ¡ESTA ES LA FUNCIÓN CORREGIDA!
+function renderAdminControlsVisibility(){
+  if (LOGGED_IN_STORE.name !== 'jtl') {
+    jtlAdminSection.style.display = 'none';
+    togglePublicBtn.style.display = 'none';
+    btnNewStore.style.display = 'none'; // Ocultar
+  } else {
+    jtlAdminSection.style.display = 'block';
+    togglePublicBtn.style.display = 'inline-flex';
+    btnNewStore.style.display = 'inline-flex'; // ¡Mostrar!
+  }
+}
+
+/* ---------- Inicialización pública (vista cliente) ---------- */
+async function initPublicUI(){
+  try {
+    // 1. Cargar todas las tiendas
+    const response = await fetch(`${API_URL}/api/stores`);
+    if (!response.ok) throw new Error('No se pudieron cargar las tiendas');
+    ALL_STORES = await response.json();
+    
+    // 2. Definir tienda activa (pública)
+    // TODO: Usar el `localStorage` para recordar la última tienda vista
+    ACTIVE_STORE = ALL_STORES.find(s => s.name === 'jtl') || ALL_STORES.find(s => s.isPublic);
+    
+    if (!ACTIVE_STORE) {
+      productsWrap.innerHTML = '<h2>No hay tiendas públicas disponibles en este momento.</h2>';
+      return;
+    }
+    
+    // 3. Cargar productos de la tienda activa
+    products = await loadProductsFor(ACTIVE_STORE._id);
+    
+    // 4. Renderizar todo
+    renderHeader();
+    renderProducts();
+    renderCart();
+    loadCategoryFilter();
+    populateLoginStores(); // Llenar el dropdown del modal
+
+  } catch (error) {
+    console.error('Error fatal en initPublicUI:', error);
+    productsWrap.innerHTML = `<h2>Error al cargar la aplicación: ${error.message}</h2><p>Asegúrate de que el servidor backend (${API_URL}) esté corriendo.</p>`;
+  }
+}
+
+/* Cerrar panel admin */
+document.getElementById('close-admin').onclick = async () => {
+  adminPanel.style.display = 'none';
+  LOGGED_IN_STORE = null;
+  removeToken();
+  // Recargamos la UI pública
+  await initPublicUI();
+};
+
+/* ---------- Inicialización final ---------- */
+applyThemeFromStorage();
+initPublicUI(); // Iniciar la aplicación
+
+</script>
+
+</body>
+</html>
