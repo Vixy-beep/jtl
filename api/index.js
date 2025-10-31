@@ -18,14 +18,21 @@ app.use(express.json());
 const MONGO_URL = process.env.MONGO_URL || "mongodb+srv://jtl_admin1:jw4OxrvWN0X9nbzH@jtl-tienda-cluster.zc83gfl.mongodb.net/tiendaDB?appName=jtl-tienda-cluster";
 const JWT_SECRET = process.env.JWT_SECRET || 'tu-llave-secreta-super-dificil-de-adivinar-12345';
 
-mongoose.connect(MONGO_URL)
-  .then(() => {
-    console.log('¡Conectado a MongoDB Atlas! (Vercel)');
-  })
-  .catch((err) => {
-    console.error('Error al conectar a MongoDB:', err);
-  });
-
+if (isConnected) {
+    console.log('Usando conexión existente a MongoDB.');
+} else {
+    mongoose.connect(MONGO_URL, { 
+        serverSelectionTimeoutMS: 5000, 
+        family: 4 
+    })
+    .then(() => {
+        isConnected = true; // Marca la conexión como exitosa
+        console.log('¡Conectado a MongoDB Atlas! (Vercel)');
+    })
+    .catch((err) => {
+        console.error('Error al conectar a MongoDB:', err);
+    });
+}
 // 4. Modelos de la Base de Datos (Mongoose)
 // (Asegúrate de que esta estructura coincida con tu base de datos)
 const storeSchema = new mongoose.Schema({
