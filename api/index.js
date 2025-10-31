@@ -235,4 +235,18 @@ app.get('/api/stats/:storeId', authenticateToken, async (req, res) => {
 
 
 // 8. Exportar la aplicación Express para el hosting
+// --- AL FINAL DEL ARCHIVO api/index.js ---
+
+// 1. Exporta la aplicación para la ruta Serverless (¡si el hosting lo necesita!)
+//    Esto es lo que hace que Express funcione en Render/Vercel
 module.exports = app;
+
+// 2. Bloque de Listen para que Render o Vercel lo inicien correctamente
+//    Esto es lo que Render necesita para detectar un puerto activo.
+const port_render = process.env.PORT || 3000; 
+    
+// Añadimos '0.0.0.0' para que Express se enlace a la IP de la máquina de hosting
+app.listen(port_render, '0.0.0.0', () => { 
+    console.log(`Servidor de Express escuchando en el puerto ${port_render}`); 
+});
+
