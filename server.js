@@ -35,6 +35,4 @@ app.get('/api/products/:storeId', (req, res) => {
 });
 
 // 6. Iniciar el servidor
-app.listen(port, () => {
-  console.log(`Servidor de Tienda JTL escuchando en http://localhost:${port}`);
-});
+module.exports = app;
