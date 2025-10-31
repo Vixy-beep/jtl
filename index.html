@@ -9,7 +9,6 @@
 
 </head>
 <body>
-
 <div class="container">
   <header>
     <div class="logo">JTL</div>
@@ -23,17 +22,7 @@
       <a class="btn" id="wa-link" target="_blank">WhatsApp</a>
     </nav>
   </header>
-
-  <div class="topbar">
-    <select id="filter-category" style="padding:10px 14px;border-radius:999px;border:1px solid #e6edf3;background:white;">
-      <option value="">Todas</option>
-    </select>
-    <div class="search" style="flex:1;">
-      <input id="search" placeholder="Buscar productos...">
-    </div>
-  </div>
-
-  <main class="layout" style="display:flex;gap:20px;align-items:start">
+<main class="layout" style="display:flex;gap:20px;align-items:start">
     <section style="flex:1"><div class="products" id="products"></div></section>
     <aside class="sidebar" style="width:320px">
       <div class="cart">
@@ -191,13 +180,14 @@
 
 // --- Variables Globales ---
 const THEME_KEY = 'jt_theme_v2';
-const API_URL = 'https://jtl-tienda-api.onrender.com'; 
+// Vercel usará /api para comunicarse consigo mismo
+const API_URL = '/api'; 
 
 // Estado de la aplicación
-let ALL_STORES = []; // Lista de todas las tiendas (viene del backend)
-let ACTIVE_STORE = null; // La tienda que el PÚBLICO está viendo
-let LOGGED_IN_STORE = null; // La tienda del ADMIN que inició sesión
-let products = []; // Productos de la tienda activa
+let ALL_STORES = []; 
+let ACTIVE_STORE = null; 
+let LOGGED_IN_STORE = null; 
+let products = []; 
 let cart = [];
 
 // --- Helpers de Autenticación ---
@@ -844,7 +834,6 @@ resetProfitBtn.onclick = async () => {
 };
 
 /* mostrar/ocultar controles JTL segun sesión */
-// ¡ESTA ES LA FUNCIÓN CORREGIDA!
 function renderAdminControlsVisibility(){
   if (LOGGED_IN_STORE.name !== 'jtl') {
     jtlAdminSection.style.display = 'none';
