@@ -25,7 +25,7 @@ const MONGO_URL = process.env.MONGO_URL || "mongodb+srv://jtl_admin1:jw4OxrvWN0X
 const JWT_SECRET = process.env.JWT_SECRET || 'tu-llave-secreta-super-dificil-de-adivinar-12345';
 
 // 3. Bloque de Conexión Serverless (MÉTODO CORRECTO)
-/ 2. Bloque de Conexión Serverless/Render Robusto
+// 2. Bloque de Conexión Serverless/Render Robusto
 if (isConnected && mongoose.connections[0].readyState) {
     // Si la conexión ya existe y está activa, usa la existente
     console.log('Usando conexión existente a MongoDB.');
