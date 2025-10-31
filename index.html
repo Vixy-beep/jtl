@@ -24,7 +24,16 @@
     </nav>
   </header>
 <main class="layout" style="display:flex;gap:20px;align-items:start">
-    <section style="flex:1"><div class="products" id="products"></div></section>
+    <section style="flex:1">
+      <!-- Filtros de búsqueda -->
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <input type="text" id="search" placeholder="Buscar productos..." style="flex:1;min-width:200px;padding:8px;border-radius:8px;border:1px solid #e6edf3">
+        <select id="filter-category" style="padding:8px;border-radius:8px;border:1px solid #e6edf3">
+          <option value="">Todas las categorías</option>
+        </select>
+      </div>
+      <div class="products" id="products"></div>
+    </section>
     <aside class="sidebar" style="width:320px">
       <div class="cart">
         <strong>Carrito</strong>
