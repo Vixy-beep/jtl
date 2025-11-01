@@ -230,6 +230,45 @@ function daysUntil(msStr){
   return Math.max(0, Math.ceil((ms - Date.now()) / (24*60*60*1000))); 
 }
 
+// Función para redimensionar y comprimir imagen
+async function processImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        // Crear canvas para redimensionar
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Calcular nuevas dimensiones (máximo 800px de ancho)
+        let width = img.width;
+        let height = img.height;
+        const maxWidth = 800;
+        
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Dibujar imagen redimensionada
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convertir a base64 con compresión (calidad 0.8)
+        const base64 = canvas.toDataURL('image/jpeg', 0.8);
+        resolve(base64);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 /* ---------- DOM ---------- */
 const productsWrap = document.getElementById('products');
 const cartItems = document.getElementById('cart-items');
@@ -786,6 +825,10 @@ document.getElementById('add-product').onclick = async () => {
   const price = Number(pPrice.value) || 0;
   const stock = Number(pStock.value) || 0;
   
+  if (!name) {
+    return alert('El nombre del producto es requerido');
+  }
+  
   // Procesar imagen si existe
   let imgData = '';
   if (pImgFile.files && pImgFile.files[0]) {
@@ -796,23 +839,30 @@ document.getElementById('add-product').onclick = async () => {
       return alert('Por favor selecciona un archivo de imagen válido');
     }
     
-    // Validar tamaño (máximo 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      return alert('La imagen es muy grande. Máximo 2MB');
+    // Validar tamaño (máximo 5MB antes de procesar)
+    if (file.size > 5 * 1024 * 1024) {
+      return alert('La imagen es muy grande. Máximo 5MB');
     }
     
-    // Convertir a base64
+    // Mostrar mensaje de procesamiento
+    const btnAddProduct = document.getElementById('add-product');
+    const originalText = btnAddProduct.textContent;
+    btnAddProduct.textContent = 'Procesando imagen...';
+    btnAddProduct.disabled = true;
+    
+    // Procesar y comprimir imagen
     try {
-      imgData = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      imgData = await processImage(file);
+      console.log('Imagen procesada, tamaño:', Math.round(imgData.length / 1024), 'KB');
     } catch (error) {
-      console.error('Error al leer imagen:', error);
-      return alert('Error al procesar la imagen');
+      btnAddProduct.textContent = originalText;
+      btnAddProduct.disabled = false;
+      console.error('Error al procesar imagen:', error);
+      return alert('Error al procesar la imagen. Intenta con otra imagen.');
     }
+    
+    btnAddProduct.textContent = originalText;
+    btnAddProduct.disabled = false;
   }
 
   try {
