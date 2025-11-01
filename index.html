@@ -26,11 +26,11 @@
 <main class="layout" style="display:flex;gap:20px;align-items:start">
     <section style="flex:1">
       <!-- Filtros de búsqueda -->
-      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-        <input type="text" id="search" placeholder="Buscar productos..." style="flex:1;min-width:200px;padding:8px;border-radius:8px;border:1px solid #e6edf3">
-        <select id="filter-category" style="padding:8px;border-radius:8px;border:1px solid #e6edf3">
+      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
+        <select id="filter-category" style="padding:8px 12px;border-radius:8px;border:1px solid #e6edf3;font-size:14px;width:auto;min-width:150px">
           <option value="">Todas las categorías</option>
         </select>
+        <input type="text" id="search" placeholder="Buscar..." style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid #e6edf3;font-size:14px">
       </div>
       <div class="products" id="products"></div>
     </section>
@@ -114,6 +114,14 @@
       <p><strong>Ingresos tienda:</strong> RD$<span id="stat-profit">0</span></p>
       <p><strong>Comisión pendiente para JTL:</strong> RD$<span id="stat-platform">0</span></p>
       <p><strong>Suscripción:</strong> <span id="stat-sub">—</span></p>
+      
+      <!-- Contador visual de días de suscripción -->
+      <div id="subscription-counter" style="margin-top:10px;padding:10px;background:white;border-radius:8px;text-align:center;display:none;">
+        <div style="font-size:14px;color:#666;margin-bottom:6px">Días restantes de suscripción</div>
+        <div id="days-counter" style="font-size:36px;font-weight:700;color:#10b981">30</div>
+        <div style="font-size:12px;color:#999;margin-top:4px">días hasta el vencimiento</div>
+      </div>
+      
       <button id="reset-profit" style="margin-top:6px;padding:6px 10px;border:none;background:#d9534f;color:white;border-radius:6px;cursor:pointer;">
         Resetear Ganancias
       </button>
@@ -344,6 +352,30 @@ async function renderStats(storeId) {
 
     const days = daysUntil(stats.subscriptionPaidUntil);
     statSub.textContent = days > 0 ? `Activa — vence en ${days} días` : 'Vencida — bloqueada';
+    
+    // Actualizar contador visual
+    const subscriptionCounter = document.getElementById('subscription-counter');
+    const daysCounter = document.getElementById('days-counter');
+    
+    if (stats.name !== 'jtl') {
+      subscriptionCounter.style.display = 'block';
+      daysCounter.textContent = days;
+      
+      // Cambiar color según días restantes
+      if (days > 15) {
+        daysCounter.style.color = '#10b981'; // Verde
+      } else if (days > 7) {
+        daysCounter.style.color = '#f59e0b'; // Amarillo
+      } else if (days > 0) {
+        daysCounter.style.color = '#ef4444'; // Rojo
+      } else {
+        daysCounter.style.color = '#991b1b'; // Rojo oscuro
+        daysCounter.textContent = '0';
+      }
+    } else {
+      subscriptionCounter.style.display = 'none';
+    }
+    
   } catch (error) {
     console.error('Error renderStats:', error.message);
     if (error.message.includes('Suscripción vencida')) {
@@ -379,9 +411,16 @@ function renderProducts(filterText = ''){
     const card = document.createElement('div');
     card.className = 'card';
     const img = p.img || 'https://via.placeholder.com/400x300?text=No+Image';
+    
+    // Encontrar la tienda del producto
+    const productStore = ALL_STORES.find(store => store._id === p.store);
+    const storeName = productStore ? productStore.name : 'Tienda';
+    const storeWhatsApp = productStore ? (productStore.whatsapp || '18093108421') : '18093108421';
+    
     card.innerHTML = `
       <img src="${img}" alt="${p.name}">
       <h4 style="margin:6px 0 0 0">${p.name}</h4>
+      <p style="font-size:11px;color:var(--muted);margin:4px 0">📍 ${storeName}</p>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
         <span class="price">${formatRD(p.price)}</span><span class="badge-cat">${p.category||'General'}</span>
       </div>
@@ -389,7 +428,7 @@ function renderProducts(filterText = ''){
         ${s}
         <div>
           <button class="btn sm secondary" ${p.stock<=0?'disabled':''} data-add="${p._id}">Añadir</button>
-          <button class="btn sm" style="margin-left:6px" data-wa="${p._id}">Pedir</button>
+          <button class="btn sm" style="margin-left:6px" data-wa="${p._id}" data-store-wa="${storeWhatsApp}">Pedir</button>
         </div>
       </div>
     `;
@@ -402,11 +441,13 @@ function renderProducts(filterText = ''){
   productsWrap.querySelectorAll('[data-wa]').forEach(btn => {
     btn.onclick = () => {
       const pid = btn.getAttribute('data-wa');
+      const storeWA = btn.getAttribute('data-store-wa');
       const p = products.find(x=>x._id===pid);
       if(!p) return;
-      const waNumber = ACTIVE_STORE?.whatsapp || '18093108421';
-      const msg = encodeURIComponent(`Hola, quiero pedir: *${p.name}* — ${formatRD(p.price)} desde *${ACTIVE_STORE?.name || 'la tienda'}*`);
-      window.open(`https://wa.me/${waNumber}?text=${msg}`, '_blank');
+      const productStore = ALL_STORES.find(store => store._id === p.store);
+      const storeName = productStore ? productStore.name : 'la tienda';
+      const msg = encodeURIComponent(`Hola, quiero pedir: *${p.name}* — ${formatRD(p.price)} desde *${storeName}*`);
+      window.open(`https://wa.me/${storeWA}?text=${msg}`, '_blank');
     };
   });
 }
@@ -454,10 +495,29 @@ document.getElementById('buy-whatsapp-mobile').onclick = () => { buyWhatsAppHand
 async function buyWhatsAppHandler(){
   if(cart.length === 0) return alert('Carrito vacío');
   
-  const days = daysUntil(ACTIVE_STORE.subscriptionPaidUntil);
-  if(days <= 0 && ACTIVE_STORE.name !== 'jtl') {
-    showBlockModal(ACTIVE_STORE.name);
-    return;
+  // Agrupar productos por tienda
+  const productsByStore = {};
+  cart.forEach(item => {
+    const product = products.find(p => p._id === item.productId);
+    if (!product) return;
+    
+    const storeId = product.store;
+    if (!productsByStore[storeId]) {
+      productsByStore[storeId] = [];
+    }
+    productsByStore[storeId].push({ product, qty: item.qty });
+  });
+  
+  // Verificar que todas las tiendas tengan suscripción activa
+  for (const storeId in productsByStore) {
+    const store = ALL_STORES.find(s => s._id === storeId);
+    if (!store) continue;
+    
+    const days = daysUntil(store.subscriptionPaidUntil);
+    if(days <= 0 && store.name !== 'jtl') {
+      showBlockModal(store.name);
+      return alert(`La tienda "${store.name}" tiene la suscripción vencida. No se puede procesar el pedido.`);
+    }
   }
   
   try {
@@ -472,21 +532,35 @@ async function buyWhatsAppHandler(){
       throw new Error(data.message || 'Error al procesar la venta');
     }
 
-    let total = 0;
-    let msg = "🛍 *Pedido*%0A%0A";
-    cart.forEach(it => {
-      const p = products.find(x => x._id === it.productId);
-      if(!p) return;
-      total += p.price * it.qty;
-      msg += `• ${p.name} x${it.qty} - RD$${(p.price*it.qty).toFixed(2)}%0A`;
-    });
+    // Enviar mensaje a cada tienda por separado
+    for (const storeId in productsByStore) {
+      const store = ALL_STORES.find(s => s._id === storeId);
+      if (!store) continue;
+      
+      const storeProducts = productsByStore[storeId];
+      let total = 0;
+      let msg = `🛍 *Pedido para ${store.name}*%0A%0A`;
+      
+      storeProducts.forEach(({ product, qty }) => {
+        total += product.price * qty;
+        msg += `• ${product.name} x${qty} - RD$${(product.price * qty).toFixed(2)}%0A`;
+      });
 
-    msg += `%0A💰 *Total:* RD$${total.toFixed(2)}%0A%0A🚚 *DeliveryYa — Santiago*%0A%0A¿Dirección para entregar?`;
-    const wa = `https://wa.me/${ACTIVE_STORE?.whatsapp || '18093108421'}?text=` + msg;
-    window.open(wa, '_blank');
+      msg += `%0A💰 *Total:* RD$${total.toFixed(2)}%0A%0A🚚 *DeliveryYa — Santiago*%0A%0A¿Dirección para entregar?`;
+      const storeWA = store.whatsapp || '18093108421';
+      const wa = `https://wa.me/${storeWA}?text=${msg}`;
+      window.open(wa, '_blank');
+    }
 
     cart = [];
-    products = await loadProductsFor(ACTIVE_STORE._id);
+    
+    // Recargar productos de todas las tiendas
+    products = [];
+    for (const store of ALL_STORES) {
+      const storeProducts = await loadProductsFor(store._id);
+      products.push(...storeProducts);
+    }
+    
     renderProducts();
     renderCart();
   } catch (error) {
@@ -593,10 +667,12 @@ function renderStoreList(){
     row.className = 'row';
     const days = daysUntil(s.subscriptionPaidUntil);
     const subActive = days > 0;
+    const whatsappDisplay = s.whatsapp ? `📱 ${s.whatsapp}` : '📱 Sin WhatsApp';
+    
     row.innerHTML = `
       <div>
         <div style="font-weight:700">${s.name}${s.name ==='jtl' ? ' — (Principal)' : ''}</div>
-        <div class="muted" style="font-size:12px">ID: ${s._id}</div>
+        <div class="muted" style="font-size:12px">${whatsappDisplay}</div>
         <div style="margin-top:4px">${subActive ? `<span class="status-pill">Activa (${days} días)</span>` : '<span class="status-pill">Suscripción vencida</span>'}</div>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
@@ -885,17 +961,19 @@ async function loadMonthlyAmount() {
 /* mostrar/ocultar controles JTL segun sesión */
 function renderAdminControlsVisibility(){
   if (LOGGED_IN_STORE.name !== 'jtl') {
+    // Tiendas normales (NO JTL)
     jtlAdminSection.style.display = 'none';
     togglePublicBtn.style.display = 'none';
     btnNewStore.style.display = 'none';
     monthlyControlDiv.style.display = 'none';
-    deleteAllDataBtn.style.display = 'inline-flex';
+    deleteAllDataBtn.style.display = 'block'; // Mostrar botón de borrar datos
   } else {
+    // Tienda JTL (administrador principal)
     jtlAdminSection.style.display = 'block';
     togglePublicBtn.style.display = 'inline-flex';
     btnNewStore.style.display = 'inline-flex';
     monthlyControlDiv.style.display = 'block';
-    deleteAllDataBtn.style.display = 'none';
+    deleteAllDataBtn.style.display = 'none'; // Ocultar botón de borrar datos para JTL
     loadMonthlyAmount();
   }
 }
@@ -918,7 +996,12 @@ async function initPublicUI(){
       return;
     }
     
-    products = await loadProductsFor(ACTIVE_STORE._id);
+    // Cargar productos de TODAS las tiendas
+    products = [];
+    for (const store of ALL_STORES) {
+      const storeProducts = await loadProductsFor(store._id);
+      products.push(...storeProducts);
+    }
     
     renderHeader();
     renderProducts();
