@@ -94,6 +94,82 @@ thead{display:table;width:100%;}
   body.dark #mobile-cart-panel{background:var(--card)}
   #mobile-cart-close{text-align:center;margin-bottom:12px;padding:6px;
     background:#e8eef5;border-radius:8px;font-weight:600;cursor:pointer;}
+  
+  /* Modales en móvil */
+  #pass-modal, #admin-panel, #block-modal{
+    padding:10px;
+    align-items:flex-start;
+    overflow-y:auto;
+  }
+  
+  .panel-box{
+    max-width:100% !important;
+    width:100%;
+    max-height:none;
+    margin:10px 0;
+    padding:16px;
+    border-radius:12px;
+  }
+  
+  #admin-panel .panel-box{
+    margin-top:10px;
+    margin-bottom:10px;
+  }
+  
+  /* Tabla responsive */
+  table{
+    font-size:12px;
+    display:block;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  
+  th, td{
+    padding:8px 6px;
+    font-size:12px;
+  }
+  
+  /* Botones en móvil */
+  .btn{
+    font-size:13px;
+    padding:8px 12px;
+  }
+  
+  .btn.sm{
+    font-size:11px;
+    padding:5px 8px;
+  }
+  
+  /* Inputs en móvil */
+  #admin-panel input,
+  #admin-panel select,
+  #pass-modal input,
+  #pass-modal select{
+    font-size:16px !important; /* Evita zoom en iOS */
+    padding:12px;
+  }
+  
+  /* Header responsive */
+  header{
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  
+  .logo{
+    width:48px;
+    height:48px;
+    font-size:18px;
+  }
+  
+  nav{
+    gap:8px;
+  }
+  
+  /* Container en móvil */
+  .container{
+    padding:12px;
+    margin:0;
+  }
 }
 
 /* small helpers */
