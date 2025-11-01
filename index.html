@@ -245,6 +245,7 @@ const pName = document.getElementById('p-name');
 const pCategory = document.getElementById('p-category');
 const pPrice = document.getElementById('p-price');
 const pStock = document.getElementById('p-stock');
+const pImgFile = document.getElementById('p-img-file');
 const statCount = document.getElementById('stat-count');
 const statStock = document.getElementById('stat-stock');
 const statValue = document.getElementById('stat-value');
@@ -410,7 +411,8 @@ function renderProducts(filterText = ''){
     const s = p.stock > 1 ? `<small>Stock: ${p.stock}</small>` : p.stock === 1 ? `<small style="color:#f97316">🔔 Última unidad</small>` : `<small style="color:red">Agotado</small>`;
     const card = document.createElement('div');
     card.className = 'card';
-    const img = p.img || 'https://via.placeholder.com/400x300?text=No+Image';
+    // Usar imagen del producto o una imagen por defecto en base64
+    const img = p.img || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23ddd" width="400" height="300"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="24" text-anchor="middle" x="200" y="150"%3ESin Imagen%3C/text%3E%3C/svg%3E';
     
     // Encontrar la tienda del producto
     const productStore = ALL_STORES.find(store => store._id === p.store);
@@ -783,18 +785,48 @@ document.getElementById('add-product').onclick = async () => {
   const category = pCategory.value.trim() || 'General';
   const price = Number(pPrice.value) || 0;
   const stock = Number(pStock.value) || 0;
+  
+  // Procesar imagen si existe
+  let imgData = '';
+  if (pImgFile.files && pImgFile.files[0]) {
+    const file = pImgFile.files[0];
+    
+    // Validar que sea una imagen
+    if (!file.type.startsWith('image/')) {
+      return alert('Por favor selecciona un archivo de imagen válido');
+    }
+    
+    // Validar tamaño (máximo 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      return alert('La imagen es muy grande. Máximo 2MB');
+    }
+    
+    // Convertir a base64
+    try {
+      imgData = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    } catch (error) {
+      console.error('Error al leer imagen:', error);
+      return alert('Error al procesar la imagen');
+    }
+  }
 
   try {
     const response = await fetch(`${API_URL}/api/products`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ name, category, price, stock })
+      body: JSON.stringify({ name, category, price, stock, img: imgData })
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.message);
     
     alert('¡Producto guardado en la base de datos!');
     pName.value = pCategory.value = pPrice.value = pStock.value = '';
+    pImgFile.value = '';
     await loadAdminDataForStore(adminStoreSelector.value);
   } catch (error) {
     console.error('Error al guardar:', error);
